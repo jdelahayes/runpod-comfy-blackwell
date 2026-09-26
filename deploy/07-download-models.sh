@@ -15,4 +15,6 @@ if [[ -z "$SSH_CMD" ]]; then
 fi
 
 echo ">> Connexion : ${SSH_CMD}"
-$SSH_CMD "DOWNLOAD_FULL_QUALITY=${DOWNLOAD_FULL_QUALITY} /opt/scripts/download_models.sh ${VOLUME_MOUNT_PATH}/models"
+# HF_TOKEN/CIVITAI_TOKEN passés explicitement : une session SSH n'hérite pas forcément
+# des env définies au démarrage du pod (--env), selon la config PAM/sshd de l'image.
+$SSH_CMD "DOWNLOAD_FULL_QUALITY=${DOWNLOAD_FULL_QUALITY} HF_TOKEN=${HF_TOKEN:-} CIVITAI_TOKEN=${CIVITAI_TOKEN:-} /opt/scripts/download_models.sh ${VOLUME_MOUNT_PATH}/models"

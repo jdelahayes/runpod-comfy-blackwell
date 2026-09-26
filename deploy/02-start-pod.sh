@@ -15,11 +15,16 @@ OUT=$(runpodctl pod create \
   --network-volume-id "${VOLUME_ID}" \
   --volume-mount-path "${VOLUME_MOUNT_PATH}" \
   --ports "8188/http,22/tcp" \
-  --env "{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\"}" \
+  --env "{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\"}" \
   --wait \
   -o json)
 
-echo "$OUT"
+# La réponse de l'API peut réverbérer les env passées ci-dessus : on masque les tokens
+# avant affichage pour ne pas les laisser traîner dans le terminal/l'historique.
+REDACTED_OUT="$OUT"
+[[ -n "${HF_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${HF_TOKEN}/***HF_TOKEN***}"
+[[ -n "${CIVITAI_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${CIVITAI_TOKEN}/***CIVITAI_TOKEN***}"
+echo "$REDACTED_OUT"
 NEW_ID=$(echo "$OUT" | grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 
 if [[ -z "$NEW_ID" ]]; then

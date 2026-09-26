@@ -39,7 +39,20 @@ link_models() {
   done
 }
 
+# Rend HF_TOKEN/CIVITAI_TOKEN visibles dans les futures sessions SSH interactives (une
+# session ouverte via sshd n'hérite pas de l'environnement du conteneur passé par --env,
+# seulement de ce qui est écrit dans /etc/environment, lu par pam_env).
+persist_tokens() {
+  for var in HF_TOKEN CIVITAI_TOKEN; do
+    if [[ -n "${!var:-}" ]]; then
+      sed -i "/^${var}=/d" /etc/environment
+      echo "${var}=${!var}" >> /etc/environment
+    fi
+  done
+}
+
 setup_ssh
+persist_tokens
 link_models
 
 if [[ "${MODELS_AUTO_DOWNLOAD:-0}" == "1" ]]; then

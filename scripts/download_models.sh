@@ -11,6 +11,12 @@
 # Avec DOWNLOAD_FULL_QUALITY=1 : ajoute aussi les diffusion models non-pruned int8_convrot,
 # à utiliser SANS la LoRA turbo, pour le rendu final en pleine qualité (plus lent).
 #
+# HF_TOKEN : lu automatiquement par huggingface_hub s'il est exporté dans l'environnement
+# (voir deploy/env.example). Pas obligatoire pour les dépôts publics utilisés ici, mais
+# évite le rate-limit anonyme et sera nécessaire si un dépôt devient gated.
+# CIVITAI_TOKEN : câblé/propagé (deploy/env.example, 02-start-pod.sh, 07-download-models.sh)
+# en prévision d'un futur script de téléchargement CivitAI ; non utilisé par ce script.
+#
 # Usage: download_models.sh [dossier_cible]   (defaut: /runpod-volume/models)
 set -euo pipefail
 
@@ -20,6 +26,12 @@ TURBO_REPO="drbaph/MiniMax-H3-Turbo-Lora-ComfyUI"
 
 echo ">> Cible : ${MODELS_DIR}"
 mkdir -p "${MODELS_DIR}"/{diffusion_models,text_encoders,vae,loras}
+
+if [[ -n "${HF_TOKEN:-}" ]]; then
+  echo ">> HF_TOKEN détecté, authentification Hugging Face activée."
+else
+  echo ">> Pas de HF_TOKEN : téléchargement anonyme (suffisant pour ces dépôts publics)."
+fi
 
 python -m pip install -q -U "huggingface_hub[hf_transfer]"
 export HF_HUB_ENABLE_HF_TRANSFER=1
