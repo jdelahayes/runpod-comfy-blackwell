@@ -21,7 +21,10 @@ command -v runpodctl >/dev/null 2>&1 || {
 }
 
 : "${RUNPOD_API_KEY:?RUNPOD_API_KEY manquant dans deploy/.env}"
-runpodctl config --apiKey "$RUNPOD_API_KEY" >/dev/null
+# RUNPOD_API_KEY est déjà exportée (via `set -a` ci-dessus) : runpodctl la lit directement
+# depuis l'environnement. `runpodctl config --apiKey` est déprécié (persiste en clair dans
+# ~/.runpod/config.toml en plus, ce qu'on évite ici).
+export RUNPOD_API_KEY
 
 # Persiste une clé=valeur dans deploy/.env (utilisé pour écrire VOLUME_ID / POD_ID après création).
 save_env_var() {
