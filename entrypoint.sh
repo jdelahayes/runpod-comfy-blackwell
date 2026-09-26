@@ -47,6 +47,12 @@ if [[ "${MODELS_AUTO_DOWNLOAD:-0}" == "1" ]]; then
   /opt/scripts/download_models.sh "$MODELS_VOLUME_DIR" || echo ">> Téléchargement échoué, on démarre quand même."
 fi
 
+# Une commande explicite (ex: `docker run image bash`, utile pour inspecter/debugger le
+# conteneur) prend le pas sur le démarrage par défaut de ComfyUI.
+if [[ "$#" -gt 0 ]]; then
+  exec "$@"
+fi
+
 cd "$COMFY_HOME"
 echo ">> Démarrage de ComfyUI sur le port 8188"
 exec python main.py --listen 0.0.0.0 --port 8188 ${COMFY_EXTRA_ARGS:-}
