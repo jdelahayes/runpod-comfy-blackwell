@@ -87,9 +87,15 @@ directement la valeur à mettre dans `IMAGE` de `deploy/.env`.
 
 Prérequis : [`runpodctl`](https://github.com/runpod/runpodctl) installé et une clé API RunPod.
 
+`deploy/.env` accepte aussi `HF_TOKEN` (Hugging Face) et `CIVITAI_TOKEN` (CivitAI, câblé en
+prévision — aucun script actuel ne l'utilise encore). Propagés au pod à la création, persistés
+dans `/etc/environment` pour toute session SSH ultérieure, et masqués à l'affichage dans
+`02-start-pod.sh`. `HF_TOKEN` n'est pas obligatoire pour les dépôts publics utilisés ici, mais
+évite le rate-limit anonyme et sera nécessaire si un dépôt devient gated.
+
 ```bash
 cp deploy/env.example deploy/.env
-$EDITOR deploy/.env        # renseigner RUNPOD_API_KEY, IMAGE, GPU_ID, DATA_CENTER_ID...
+$EDITOR deploy/.env        # renseigner RUNPOD_API_KEY, IMAGE, GPU_ID, DATA_CENTER_ID, HF_TOKEN...
 
 cd deploy
 ./01-create-volume.sh      # une seule fois : crée le Network Volume (250 Go par défaut)
