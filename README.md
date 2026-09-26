@@ -113,6 +113,19 @@ cd deploy
 ComfyUI est ensuite accessible via l'onglet **Connect** du pod dans la console RunPod,
 sur le port `8188` (HTTP).
 
+### Template RunPod (optionnel)
+
+`./09-create-or-update-template.sh` crée un template RunPod (image + ports + env + disque),
+réutilisable depuis le dashboard RunPod ou avec `runpodctl pod create --template-id <id>`, sans
+avoir à rappeler tous les flags à chaque fois. Idempotent : relancé, il retrouve le template par
+`TEMPLATE_NAME` (ou par `TEMPLATE_ID` s'il est déjà connu dans `.env`) et le met à jour au lieu
+d'en recréer un nouveau — pratique après un `git push` qui republie une nouvelle version de
+l'image. Nécessite `jq`.
+
+```bash
+./09-create-or-update-template.sh
+```
+
 Vérifie la chaîne exacte du GPU sur ton compte avec `runpodctl gpu list | grep -i 6000`
 avant le premier lancement (le nom peut varier légèrement selon les régions/offres).
 
