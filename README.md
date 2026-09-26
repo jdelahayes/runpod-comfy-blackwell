@@ -98,6 +98,11 @@ cp deploy/env.example deploy/.env
 $EDITOR deploy/.env        # renseigner RUNPOD_API_KEY, IMAGE, GPU_ID, DATA_CENTER_ID, HF_TOKEN...
 
 cd deploy
+./00-check-gpu-availability.sh                    # stock GPU pour le DATA_CENTER_ID de .env
+./00-check-gpu-availability.sh US-KS-2 "6000|5090" # datacenter + filtre par nom (regex)
+                                                    # le stock change en temps réel, à revérifier
+                                                    # si "none" partout avant de créer le pod
+
 ./01-create-volume.sh      # une seule fois : crée le Network Volume (250 Go par défaut)
 ./02-start-pod.sh          # crée le pod (image + GPU + volume monté)
 ./07-download-models.sh    # une seule fois : peuple le volume (kit turbo)
