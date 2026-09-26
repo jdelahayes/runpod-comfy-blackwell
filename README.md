@@ -115,8 +115,11 @@ cd deploy
 ./05-terminate-pod.sh      # supprimer le pod définitivement (le volume survit)
 ```
 
-ComfyUI est ensuite accessible via l'onglet **Connect** du pod dans la console RunPod,
-sur le port `8188` (HTTP).
+`02-start-pod.sh` affiche l'URL publique de ComfyUI (`https://<pod-id>-8188.proxy.runpod.net`)
+dès qu'elle répond vraiment (pas juste à la création du pod : `--wait` n'attend que SSH, pas le
+démarrage de ComfyUI). Timeout par défaut 15 min (`URL_WAIT_TIMEOUT`, plus long si
+`MODELS_AUTO_DOWNLOAD=1`) ; l'URL reste aussi visible dans l'onglet **Connect** de la console
+RunPod à tout moment.
 
 ### Template RunPod (optionnel)
 
