@@ -64,6 +64,25 @@ docker login ghcr.io
 ./push.sh
 ```
 
+## CI (GitHub Actions)
+
+`.github/workflows/build-push.yml` build et pousse l'image sur GHCR à chaque push sur `main`
+touchant `Dockerfile`, `entrypoint.sh` ou `scripts/`, ou manuellement via l'onglet Actions.
+Elle utilise par défaut `ghcr.io/<owner>/runpod-blackwell-base:latest` comme base — pense donc
+à laisser tourner la CI du dépôt base avant celle-ci la première fois (ou lance-la manuellement
+avec un `base_image` explicite via "Run workflow").
+
+Le déclenchement manuel ("Run workflow") accepte deux paramètres optionnels :
+- `comfyui_version` : pour tester/bumper une nouvelle version de ComfyUI sans toucher au code
+  (ex: `v0.38.0`).
+- `base_image` : pour builder contre une image de base précise plutôt que `:latest`.
+
+Comme pour la base, rends le package GHCR public après le premier push (GitHub → Packages →
+Package settings → Change visibility), sinon RunPod ne pourra pas puller l'image.
+
+Tags publiés : `ghcr.io/<owner>/runpod-comfy-blackwell:latest` et `:sha-<commit-court>` — c'est
+directement la valeur à mettre dans `IMAGE` de `deploy/.env`.
+
 ## Lancer un pod avec le CLI RunPod
 
 Prérequis : [`runpodctl`](https://github.com/runpod/runpodctl) installé et une clé API RunPod.

@@ -1,0 +1,80 @@
+name: Build & push ComfyUI image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - entrypoint.sh
+      - scripts/**
+      - .github/workflows/build-push.yml
+  workflow_dispatch:
+    inputs:
+      comfyui_version:
+        description: "Tag ComfyUI a builder (ex: v0.37.2)"
+        required: false
+        default: "v0.37.2"
+      base_image:
+        description: "Image de base a utiliser (vide = ghcr.io/<owner>/runpod-blackwell-base:latest)"
+        required: false
+        default: ""
+  # Permet a runpod-blackwell-base de déclencher un rebuild ici quand la base change
+  # (voir le step commenté dans son workflow). Rien a faire ici pour l'activer.
+  repository_dispatch:
+    types: [base-image-updated]
+
+concurrency:
+  group: build-push-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: runpod-comfy-blackwell
+  COMFYUI_VERSION: ${{ github.event.inputs.comfyui_version || 'v0.37.2' }}
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lowercase image ref (GHCR requires lowercase)
+        id: ref
+        run: |
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Résoudre BASE_IMAGE
+        id: base
+        run: |
+          input="${{ github.event.inputs.base_image }}"
+          default="ghcr.io/${{ steps.ref.outputs.owner }}/runpod-blackwell-base:latest"
+          echo "value=${input:-$default}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ steps.base.outputs.value }}
+            COMFYUI_VERSION=${{ env.COMFYUI_VERSION }}
+          tags: |
+            ghcr.io/${{ steps.ref.outputs.owner }}/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ steps.ref.outputs.owner }}/${{ env.IMAGE_NAME }}:sha-${{ steps.ref.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
