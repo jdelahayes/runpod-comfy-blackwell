@@ -115,11 +115,21 @@ cd deploy
 ./05-terminate-pod.sh      # supprimer le pod définitivement (le volume survit)
 ```
 
-`02-start-pod.sh` affiche l'URL publique de ComfyUI (`https://<pod-id>-8188.proxy.runpod.net`)
-dès qu'elle répond vraiment (pas juste à la création du pod : `--wait` n'attend que SSH, pas le
-démarrage de ComfyUI). Timeout par défaut 15 min (`URL_WAIT_TIMEOUT`, plus long si
-`MODELS_AUTO_DOWNLOAD=1`) ; l'URL reste aussi visible dans l'onglet **Connect** de la console
-RunPod à tout moment.
+`02-start-pod.sh` affiche l'URL publique de ComfyUI et JupyterLab
+(`https://<pod-id>-8188.proxy.runpod.net` et `-8888-`) dès qu'elles répondent vraiment (pas
+juste à la création du pod : `--wait` n'attend que SSH, pas le démarrage des services). Timeout
+par défaut 15 min (`URL_WAIT_TIMEOUT`, plus long si `MODELS_AUTO_DOWNLOAD=1`) ; les URLs restent
+aussi visibles dans l'onglet **Connect** de la console RunPod à tout moment.
+
+**JupyterLab** (port 8888) tourne en plus de ComfyUI, protégé par un token (`JUPYTER_TOKEN` dans
+`.env`, sinon généré aléatoirement à chaque démarrage et visible dans les logs du pod).
+
+**CORS/Host derrière le proxy RunPod** : par défaut ComfyUI et Jupyter rejettent (403) les
+requêtes dont le Host ne correspond pas à leur IP interne — exactement ce que fait le proxy
+RunPod (`https://<pod-id>-<port>.proxy.runpod.net`). `entrypoint.sh` détecte `RUNPOD_POD_ID`
+(injecté automatiquement par RunPod) et passe `--enable-cors-header`/`--ServerApp.allow_origin`
+avec l'origine exacte du pod pour éviter ça ; sans `RUNPOD_POD_ID` (tests locaux), il retombe sur
+un wildcard `*`.
 
 ### Template RunPod (optionnel)
 

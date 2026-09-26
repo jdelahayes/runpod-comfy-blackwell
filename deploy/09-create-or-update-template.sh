@@ -12,7 +12,8 @@ command -v jq >/dev/null 2>&1 || {
 
 : "${TEMPLATE_NAME:?TEMPLATE_NAME manquant dans deploy/.env}"
 
-ENV_JSON="{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\"}"
+PORTS="8188/http,8888/http,22/tcp"
+ENV_JSON="{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}"
 
 # On repart de TEMPLATE_ID si déjà connu (évite une recherche par nom, plus rapide et sans
 # ambiguïté en cas d'homonymes) ; sinon on cherche parmi tes templates existants.
@@ -28,7 +29,7 @@ if [[ -n "${TEMPLATE_ID:-}" ]]; then
   OUT=$(runpodctl template update "${TEMPLATE_ID}" \
     --image "${IMAGE}" \
     --container-disk-in-gb "${CONTAINER_DISK_GB}" \
-    --ports "8188/http,22/tcp" \
+    --ports "${PORTS}" \
     --env "${ENV_JSON}" \
     -o json)
 else
@@ -39,7 +40,7 @@ else
     --container-disk-in-gb "${CONTAINER_DISK_GB}" \
     --volume-in-gb "${VOLUME_SIZE_GB}" \
     --volume-mount-path "${VOLUME_MOUNT_PATH}" \
-    --ports "8188/http,22/tcp" \
+    --ports "${PORTS}" \
     --env "${ENV_JSON}" \
     -o json)
 fi
@@ -48,6 +49,7 @@ fi
 REDACTED_OUT="$OUT"
 [[ -n "${HF_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${HF_TOKEN}/***HF_TOKEN***}"
 [[ -n "${CIVITAI_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${CIVITAI_TOKEN}/***CIVITAI_TOKEN***}"
+[[ -n "${JUPYTER_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${JUPYTER_TOKEN}/***JUPYTER_TOKEN***}"
 echo "$REDACTED_OUT"
 
 NEW_ID=$(echo "$OUT" | jq -r '.id // empty')

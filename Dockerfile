@@ -37,12 +37,15 @@ RUN git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git \
       "${COMFY_HOME}/custom_nodes/ComfyUI-KJNodes" \
     && uv pip install --no-cache-dir -r "${COMFY_HOME}/custom_nodes/ComfyUI-KJNodes/requirements.txt" || true
 
+# JupyterLab : accès fichiers/terminal/notebooks sur le pod, en plus de ComfyUI.
+RUN uv pip install --no-cache-dir jupyterlab
+
 RUN find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} +
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/download_models.sh /opt/scripts/download_models.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /opt/scripts/download_models.sh
 
-EXPOSE 8188 22
+EXPOSE 8188 8888 22
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

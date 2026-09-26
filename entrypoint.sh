@@ -7,6 +7,20 @@ set -euo pipefail
 COMFY_HOME="${COMFY_HOME:-/workspace/ComfyUI}"
 MODELS_VOLUME_DIR="${MODELS_VOLUME_DIR:-/runpod-volume/models}"
 
+# Derrière le proxy RunPod (https://<pod-id>-<port>.proxy.runpod.net), le Host vu par le
+# conteneur ne correspond pas à l'IP interne : ComfyUI (et Jupyter) rejettent ça par défaut
+# ("request with non matching host and origin", 403). RUNPOD_POD_ID est injecté automatiquement
+# par RunPod sur chaque pod : on construit l'origine exacte à partir de là. En dehors de RunPod
+# (tests locaux), on retombe sur un wildcard.
+proxy_origin() {
+  local port="$1"
+  if [[ -n "${RUNPOD_POD_ID:-}" ]]; then
+    echo "https://${RUNPOD_POD_ID}-${port}.proxy.runpod.net"
+  else
+    echo "*"
+  fi
+}
+
 # --- SSH (pattern standard RunPod) ---
 setup_ssh() {
   mkdir -p /var/run/sshd ~/.ssh
@@ -39,6 +53,26 @@ link_models() {
   done
 }
 
+# --- JupyterLab (arrière-plan, lancé avant le exec final vers ComfyUI) ---
+setup_jupyter() {
+  local token="${JUPYTER_TOKEN:-}"
+  if [[ -z "$token" ]]; then
+    token=$(python -c 'import secrets; print(secrets.token_hex(16))')
+    echo ">> JUPYTER_TOKEN non défini, token généré pour cette session : ${token}"
+    echo "   (fixe JUPYTER_TOKEN dans deploy/.env pour un token stable entre redémarrages)"
+  fi
+  local origin
+  origin=$(proxy_origin 8888)
+  mkdir -p /workspace /root/.local/share/jupyter/runtime
+  nohup jupyter lab \
+    --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
+    --IdentityProvider.token="${token}" \
+    --ServerApp.allow_origin="${origin}" \
+    --ServerApp.root_dir=/workspace \
+    > /workspace/jupyter.log 2>&1 &
+  echo ">> JupyterLab démarré sur le port 8888 (logs : /workspace/jupyter.log)"
+}
+
 # Rend HF_TOKEN/CIVITAI_TOKEN visibles dans les futures sessions SSH interactives (une
 # session ouverte via sshd n'hérite pas de l'environnement du conteneur passé par --env,
 # seulement de ce qui est écrit dans /etc/environment, lu par pam_env).
@@ -54,6 +88,7 @@ persist_tokens() {
 setup_ssh
 persist_tokens
 link_models
+setup_jupyter
 
 if [[ "${MODELS_AUTO_DOWNLOAD:-0}" == "1" ]]; then
   echo ">> MODELS_AUTO_DOWNLOAD=1 : téléchargement des poids MiniMax H3 manquants..."
@@ -67,5 +102,6 @@ if [[ "$#" -gt 0 ]]; then
 fi
 
 cd "$COMFY_HOME"
-echo ">> Démarrage de ComfyUI sur le port 8188"
-exec python main.py --listen 0.0.0.0 --port 8188 ${COMFY_EXTRA_ARGS:-}
+COMFY_ORIGIN=$(proxy_origin 8188)
+echo ">> Démarrage de ComfyUI sur le port 8188 (CORS/host autorisé pour ${COMFY_ORIGIN})"
+exec python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header "${COMFY_ORIGIN}" ${COMFY_EXTRA_ARGS:-}

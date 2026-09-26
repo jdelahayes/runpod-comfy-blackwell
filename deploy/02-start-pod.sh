@@ -7,7 +7,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 : "${VOLUME_ID:?Lance 01-create-volume.sh avant celui-ci, ou renseigne VOLUME_ID dans .env}"
 
-PORTS="8188/http,22/tcp"
+PORTS="8188/http,8888/http,22/tcp"
 URL_WAIT_TIMEOUT="${URL_WAIT_TIMEOUT:-900}" # 15 min : large marge si MODELS_AUTO_DOWNLOAD=1
 
 echo ">> Création du pod '${POD_NAME}' (${GPU_ID})"
@@ -20,7 +20,7 @@ OUT=$(runpodctl pod create \
   --network-volume-id "${VOLUME_ID}" \
   --volume-mount-path "${VOLUME_MOUNT_PATH}" \
   --ports "${PORTS}" \
-  --env "{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\"}" \
+  --env "{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}" \
   --wait \
   -o json)
 
@@ -29,6 +29,7 @@ OUT=$(runpodctl pod create \
 REDACTED_OUT="$OUT"
 [[ -n "${HF_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${HF_TOKEN}/***HF_TOKEN***}"
 [[ -n "${CIVITAI_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${CIVITAI_TOKEN}/***CIVITAI_TOKEN***}"
+[[ -n "${JUPYTER_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${JUPYTER_TOKEN}/***JUPYTER_TOKEN***}"
 echo "$REDACTED_OUT"
 NEW_ID=$(echo "$OUT" | grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 
@@ -67,7 +68,8 @@ while [[ "$elapsed" -lt "$URL_WAIT_TIMEOUT" ]]; do
   for port in "${HTTP_PORTS[@]}"; do
     [[ -n "${READY[$port]:-}" ]] && continue
     url="https://${NEW_ID}-${port}.proxy.runpod.net"
-    code=$(curl -s -o /dev/null -m 5 -w "%{http_code}" "$url" || true)
+    # -L : Jupyter redirige (302) vers /login sans token, ComfyUI répond 200 direct.
+    code=$(curl -sL -o /dev/null -m 5 -w "%{http_code}" "$url" || true)
     if [[ "$code" == "200" ]]; then
       READY[$port]=1
       echo ">> [${port}] prêt : ${url}"
@@ -86,5 +88,10 @@ for port in "${HTTP_PORTS[@]}"; do
     echo "   Vérifie les logs du pod (./06-ssh.sh) — peut-être encore en train de démarrer/télécharger." >&2
   fi
 done
+
+if [[ -z "${JUPYTER_TOKEN:-}" ]]; then
+  echo ">> JUPYTER_TOKEN non défini : un token a été généré aléatoirement dans le pod, visible"
+  echo "   dans ses logs de démarrage (./06-ssh.sh puis regarde le début de la sortie du conteneur)."
+fi
 
 echo ">> Premier démarrage sans modèles sur le volume ? Lance ./07-download-models.sh"
