@@ -35,11 +35,12 @@ def main():
     # lui-même si même cette variable est absente).
     extra_args = sys.argv[1:] or ["--tag", lib.get_env("MODEL_TAGS", "turbo")]
 
-    # HF_TOKEN/CIVITAI_TOKEN passés explicitement : une session SSH n'hérite pas forcément
-    # des env définies au démarrage du pod (--env), selon la config PAM/sshd de l'image.
+    # Les tokens ne transitent jamais en clair depuis .env : le pod les reçoit des secrets
+    # RunPod et entrypoint.sh les persiste dans /etc/environment. On charge ce fichier
+    # explicitement, car une session SSH n'hérite pas forcément des env du conteneur selon la
+    # config PAM/sshd.
     remote_cmd = (
-        f"HF_TOKEN={shlex.quote(lib.get_env('HF_TOKEN'))} "
-        f"CIVITAI_TOKEN={shlex.quote(lib.get_env('CIVITAI_TOKEN'))} "
+        "set -a; . /etc/environment; set +a; "
         f"/opt/scripts/download_models.py {shlex.quote(volume_mount + '/models')} "
         + " ".join(shlex.quote(a) for a in extra_args)
     )

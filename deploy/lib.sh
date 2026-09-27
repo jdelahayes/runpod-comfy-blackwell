@@ -35,3 +35,20 @@ save_env_var() {
     echo "${key}=${value}" >> "$ENV_FILE"
   fi
 }
+
+# Appelle l'API GraphQL RunPod (pour ce que runpodctl ne couvre pas, ex. les secrets).
+# $1 = requête, $2 = variables en JSON (défaut {}). Les valeurs passent par les variables,
+# jamais interpolées dans la requête. Affiche `.data` ; quitte en cas d'erreur. Nécessite jq.
+runpod_graphql() {
+  local query="$1" variables="${2:-{\}}" resp
+  resp=$(jq -n --arg q "$query" --argjson v "$variables" '{query: $q, variables: $v}' \
+    | curl -sS -X POST https://api.runpod.io/graphql \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
+        --data-binary @-) || { echo "!! Échec de l'appel GraphQL RunPod" >&2; exit 1; }
+  if [[ "$(echo "$resp" | jq 'has("errors")')" == "true" ]]; then
+    echo "!! Erreur GraphQL RunPod : $(echo "$resp" | jq -c '.errors')" >&2
+    exit 1
+  fi
+  echo "$resp" | jq '.data'
+}

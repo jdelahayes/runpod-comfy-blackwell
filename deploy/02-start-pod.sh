@@ -9,6 +9,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 PORTS="8188/http,8888/http,22/tcp"
 URL_WAIT_TIMEOUT="${URL_WAIT_TIMEOUT:-900}" # 15 min : large marge si MODELS_AUTO_DOWNLOAD=1
+# Les tokens ne sont jamais passés en clair au pod : on référence des secrets RunPod (créés
+# depuis .env par 10-create-or-update-secrets.sh), que RunPod substitue au démarrage du pod.
+ENV_JSON="{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"MODEL_TAGS\":\"${MODEL_TAGS:-turbo}\",\"HF_TOKEN\":\"{{ RUNPOD_SECRET_hf_token }}\",\"CIVITAI_TOKEN\":\"{{ RUNPOD_SECRET_civitai_token }}\",\"JUPYTER_TOKEN\":\"{{ RUNPOD_SECRET_jupyter_token }}\"}"
 
 echo ">> Création du pod '${POD_NAME}' (${GPU_ID})"
 OUT=$(runpodctl pod create \
@@ -20,17 +23,11 @@ OUT=$(runpodctl pod create \
   --network-volume-id "${VOLUME_ID}" \
   --volume-mount-path "${VOLUME_MOUNT_PATH}" \
   --ports "${PORTS}" \
-  --env "{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"MODEL_TAGS\":\"${MODEL_TAGS:-turbo}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}" \
+  --env "${ENV_JSON}" \
   --wait \
   -o json)
 
-# La réponse de l'API peut réverbérer les env passées ci-dessus : on masque les tokens
-# avant affichage pour ne pas les laisser traîner dans le terminal/l'historique.
-REDACTED_OUT="$OUT"
-[[ -n "${HF_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${HF_TOKEN}/***HF_TOKEN***}"
-[[ -n "${CIVITAI_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${CIVITAI_TOKEN}/***CIVITAI_TOKEN***}"
-[[ -n "${JUPYTER_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${JUPYTER_TOKEN}/***JUPYTER_TOKEN***}"
-echo "$REDACTED_OUT"
+echo "$OUT"
 NEW_ID=$(echo "$OUT" | grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 
 if [[ -z "$NEW_ID" ]]; then
@@ -89,9 +86,6 @@ for port in "${HTTP_PORTS[@]}"; do
   fi
 done
 
-if [[ -z "${JUPYTER_TOKEN:-}" ]]; then
-  echo ">> JUPYTER_TOKEN non défini : un token a été généré aléatoirement dans le pod, visible"
-  echo "   dans ses logs de démarrage (./06-ssh.sh puis regarde le début de la sortie du conteneur)."
-fi
+echo ">> Token JupyterLab : valeur du secret RunPod 'jupyter_token' (voir 10-create-or-update-secrets.sh)."
 
 echo ">> Premier démarrage sans modèles sur le volume ? Lance ./07-download-models.sh"

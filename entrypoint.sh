@@ -66,7 +66,7 @@ setup_jupyter() {
   if [[ -z "$token" ]]; then
     token=$(python -c 'import secrets; print(secrets.token_hex(16))')
     echo ">> JUPYTER_TOKEN non défini, token généré pour cette session : ${token}"
-    echo "   (fixe JUPYTER_TOKEN dans deploy/.env pour un token stable entre redémarrages)"
+    echo "   (fixe le secret RunPod jupyter_token pour un token stable entre redémarrages)"
   fi
   local origin
   origin=$(proxy_origin 8888)

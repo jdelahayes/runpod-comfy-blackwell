@@ -26,12 +26,14 @@ def check_url(url, timeout=5):
 
 
 def build_env_payload():
+    # Les tokens ne sont jamais passés en clair au pod : on référence des secrets RunPod (créés
+    # depuis .env par 10-create-or-update-secrets.py), que RunPod substitue au démarrage du pod.
     return {
         "MODELS_AUTO_DOWNLOAD": lib.get_env("MODELS_AUTO_DOWNLOAD", "0"),
         "MODEL_TAGS": lib.get_env("MODEL_TAGS", "turbo"),
-        "HF_TOKEN": lib.get_env("HF_TOKEN", ""),
-        "CIVITAI_TOKEN": lib.get_env("CIVITAI_TOKEN", ""),
-        "JUPYTER_TOKEN": lib.get_env("JUPYTER_TOKEN", ""),
+        "HF_TOKEN": "{{ RUNPOD_SECRET_hf_token }}",
+        "CIVITAI_TOKEN": "{{ RUNPOD_SECRET_civitai_token }}",
+        "JUPYTER_TOKEN": "{{ RUNPOD_SECRET_jupyter_token }}",
     }
 
 
@@ -61,9 +63,7 @@ def main():
         "--wait",
     )
 
-    # La réponse de l'API peut réverbérer les env passées ci-dessus : on masque les tokens
-    # avant affichage pour ne pas les laisser traîner dans le terminal/l'historique.
-    print(lib.redact(env_payload, out))
+    print(json.dumps(out, ensure_ascii=False))
 
     new_id = out.get("id")
     if not new_id:
@@ -108,9 +108,7 @@ def main():
             )
             print("   Vérifie les logs du pod (./06-ssh.py) — peut-être encore en train de démarrer/télécharger.")
 
-    if not env_payload["JUPYTER_TOKEN"]:
-        print(">> JUPYTER_TOKEN non défini : un token a été généré aléatoirement dans le pod, visible")
-        print("   dans ses logs de démarrage (./06-ssh.py puis regarde le début de la sortie du conteneur).")
+    print(">> Token JupyterLab : valeur du secret RunPod 'jupyter_token' (voir 10-create-or-update-secrets.py).")
 
     print(">> Premier démarrage sans modèles sur le volume ? Lance ./07-download-models.py")
 

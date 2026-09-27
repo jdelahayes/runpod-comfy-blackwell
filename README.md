@@ -108,11 +108,16 @@ et `NN-nom.py` (Python 3 stdlib uniquement — pas de dépendance à installer).
 écrivent le même `deploy/.env`, utilise celle qui te convient. Les exemples ci-dessous utilisent
 les `.sh` ; remplace juste l'extension pour la version Python (`./02-start-pod.py`, etc.).
 
-`deploy/.env` accepte aussi `HF_TOKEN` (Hugging Face) et `CIVITAI_TOKEN` (CivitAI, câblé en
-prévision — aucun script actuel ne l'utilise encore). Propagés au pod à la création, persistés
-dans `/etc/environment` pour toute session SSH ultérieure, et masqués à l'affichage dans
-`02-start-pod.sh`. `HF_TOKEN` n'est pas obligatoire pour les dépôts publics utilisés ici, mais
-évite le rate-limit anonyme et sera nécessaire si un dépôt devient gated.
+`deploy/.env` accepte aussi `HF_TOKEN` (Hugging Face), `CIVITAI_TOKEN` (CivitAI, câblé en
+prévision — aucun script actuel ne l'utilise encore) et `JUPYTER_TOKEN`. Ils ne sont jamais passés
+en clair au pod ni au template : `./10-create-or-update-secrets.sh` les pousse dans les secrets
+RunPod `hf_token`, `civitai_token` et `jupyter_token`. `02-start-pod.sh` et le template y font
+ensuite référence (`{{ RUNPOD_SECRET_hf_token }}`, etc.), et RunPod substitue les valeurs au
+démarrage du pod. Dans le pod, ils sont persistés dans `/etc/environment` pour toute session SSH
+ultérieure. Un secret déjà présent est conservé ; `--force` le remplace par la valeur de `.env`
+(l'API RunPod ne permet pas de modifier un secret : il est supprimé puis recréé). `HF_TOKEN`
+n'est pas obligatoire pour les dépôts publics utilisés ici, mais évite le rate-limit anonyme et
+sera nécessaire si un dépôt devient gated.
 
 ```bash
 cp deploy/env.example deploy/.env
@@ -124,6 +129,8 @@ cd deploy
                                                     # le stock change en temps réel, à revérifier
                                                     # si "none" partout avant de créer le pod
 
+./10-create-or-update-secrets.sh  # une seule fois (ou --force après changement d'un token) :
+                                  # pousse HF_TOKEN/CIVITAI_TOKEN/JUPYTER_TOKEN en secrets RunPod
 ./01-create-volume.sh      # une seule fois : crée le Network Volume (250 Go par défaut)
 ./02-start-pod.sh          # crée le pod (image + GPU + volume monté)
 ./07-download-models.sh    # une seule fois : peuple le volume (tag MODEL_TAGS de .env, defaut turbo)
@@ -142,8 +149,9 @@ juste à la création du pod : `--wait` n'attend que SSH, pas le démarrage des 
 par défaut 15 min (`URL_WAIT_TIMEOUT`, plus long si `MODELS_AUTO_DOWNLOAD=1`) ; les URLs restent
 aussi visibles dans l'onglet **Connect** de la console RunPod à tout moment.
 
-**JupyterLab** (port 8888) tourne en plus de ComfyUI, protégé par un token (`JUPYTER_TOKEN` dans
-`.env`, sinon généré aléatoirement à chaque démarrage et visible dans les logs du pod).
+**JupyterLab** (port 8888) tourne en plus de ComfyUI, protégé par un token (secret RunPod
+`jupyter_token`, alimenté depuis `JUPYTER_TOKEN` de `.env` ; s'il est vide dans le pod, un token
+est généré aléatoirement à chaque démarrage et visible dans les logs du pod).
 
 **CORS/Host derrière le proxy RunPod** : par défaut ComfyUI et Jupyter rejettent (403) les
 requêtes dont le Host ne correspond pas à leur IP interne — exactement ce que fait le proxy
@@ -160,6 +168,13 @@ avoir à rappeler tous les flags à chaque fois. Idempotent : relancé, il retro
 `TEMPLATE_NAME` (ou par `TEMPLATE_ID` s'il est déjà connu dans `.env`) et le met à jour au lieu
 d'en recréer un nouveau — pratique après un `git push` qui republie une nouvelle version de
 l'image. Nécessite `jq`.
+
+Les tokens n'apparaissent jamais en clair dans le template : `HF_TOKEN`, `CIVITAI_TOKEN` et
+`JUPYTER_TOKEN` y référencent les secrets RunPod `{{ RUNPOD_SECRET_hf_token }}`,
+`{{ RUNPOD_SECRET_civitai_token }}` et `{{ RUNPOD_SECRET_jupyter_token }}`, créés par
+`./10-create-or-update-secrets.sh` (voir plus haut) ou à la main dans le dashboard RunPod
+(**Settings → Secrets**). Les ports exposés y sont libellés
+« ComfyUI » (8188), « Jupyter Lab » (8888) et « SSH » (22).
 
 ```bash
 ./09-create-or-update-template.sh

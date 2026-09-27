@@ -9,6 +9,8 @@ import os
 import shutil
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 DEPLOY_DIR = Path(__file__).resolve().parent
@@ -89,11 +91,27 @@ def save_env_var(key, value):
     ENV_FILE.write_text("\n".join(lines) + "\n")
 
 
-def redact(payload_dict, obj):
-    """Sérialise `obj` en JSON en masquant les valeurs de payload_dict qui ressemblent à des
-    secrets (tokens), pour ne pas les laisser traîner dans le terminal/l'historique."""
-    text = json.dumps(obj, ensure_ascii=False)
-    for key, value in payload_dict.items():
-        if value:
-            text = text.replace(value, f"***{key}***")
-    return text
+def runpod_graphql(query, variables=None):
+    """Appelle l'API GraphQL RunPod (pour ce que runpodctl ne couvre pas, ex. les secrets).
+    Les valeurs passent par `variables`, jamais interpolées dans la requête. Retourne `data`,
+    quitte le script en cas d'erreur."""
+    body = json.dumps({"query": query, "variables": variables or {}}).encode()
+    req = urllib.request.Request(
+        "https://api.runpod.io/graphql",
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {require_env('RUNPOD_API_KEY')}",
+            # Cloudflare (devant api.runpod.io) rejette le User-Agent par défaut de urllib
+            # (erreur 1010) : on en fournit un explicite.
+            "User-Agent": "runpod-comfy-deploy",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            payload = json.load(resp)
+    except urllib.error.HTTPError as e:
+        sys.exit(f"!! Échec de l'appel GraphQL RunPod (HTTP {e.code}) : {e.read().decode(errors='replace')}")
+    if payload.get("errors"):
+        sys.exit(f"!! Erreur GraphQL RunPod : {json.dumps(payload['errors'], ensure_ascii=False)}")
+    return payload["data"]

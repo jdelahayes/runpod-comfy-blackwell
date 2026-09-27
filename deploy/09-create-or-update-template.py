@@ -8,15 +8,19 @@ import json
 import lib
 
 PORTS = "8188/http,8888/http,22/tcp"
+PORT_LABELS = "8188=ComfyUI,8888=Jupyter Lab,22=SSH"
 
 
 def build_env_payload():
+    # Les tokens ne sont jamais écrits en clair dans le template : on référence des secrets
+    # RunPod (Settings -> Secrets, à créer une fois sous les noms hf_token, civitai_token,
+    # jupyter_token), que RunPod substitue au démarrage du pod.
     return {
         "MODELS_AUTO_DOWNLOAD": lib.get_env("MODELS_AUTO_DOWNLOAD", "0"),
         "MODEL_TAGS": lib.get_env("MODEL_TAGS", "turbo"),
-        "HF_TOKEN": lib.get_env("HF_TOKEN", ""),
-        "CIVITAI_TOKEN": lib.get_env("CIVITAI_TOKEN", ""),
-        "JUPYTER_TOKEN": lib.get_env("JUPYTER_TOKEN", ""),
+        "HF_TOKEN": "{{ RUNPOD_SECRET_hf_token }}",
+        "CIVITAI_TOKEN": "{{ RUNPOD_SECRET_civitai_token }}",
+        "JUPYTER_TOKEN": "{{ RUNPOD_SECRET_jupyter_token }}",
     }
 
 
@@ -48,6 +52,7 @@ def main():
             "--image", lib.require_env("IMAGE"),
             "--container-disk-in-gb", lib.require_env("CONTAINER_DISK_GB"),
             "--ports", PORTS,
+            "--port-labels", PORT_LABELS,
             "--env", env_json,
         )
     else:
@@ -60,11 +65,11 @@ def main():
             "--volume-in-gb", lib.require_env("VOLUME_SIZE_GB"),
             "--volume-mount-path", lib.require_env("VOLUME_MOUNT_PATH"),
             "--ports", PORTS,
+            "--port-labels", PORT_LABELS,
             "--env", env_json,
         )
 
-    # Masque les tokens avant affichage (la réponse API peut les réverbérer).
-    print(lib.redact(env_payload, out))
+    print(json.dumps(out, ensure_ascii=False))
 
     new_id = out.get("id")
     if not new_id:

@@ -13,7 +13,11 @@ command -v jq >/dev/null 2>&1 || {
 : "${TEMPLATE_NAME:?TEMPLATE_NAME manquant dans deploy/.env}"
 
 PORTS="8188/http,8888/http,22/tcp"
-ENV_JSON="{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"MODEL_TAGS\":\"${MODEL_TAGS:-turbo}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}"
+PORT_LABELS="8188=ComfyUI,8888=Jupyter Lab,22=SSH"
+# Les tokens ne sont jamais écrits en clair dans le template : on référence des secrets RunPod
+# (Settings -> Secrets, à créer une fois sous les noms hf_token, civitai_token, jupyter_token),
+# que RunPod substitue au démarrage du pod.
+ENV_JSON="{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"MODEL_TAGS\":\"${MODEL_TAGS:-turbo}\",\"HF_TOKEN\":\"{{ RUNPOD_SECRET_hf_token }}\",\"CIVITAI_TOKEN\":\"{{ RUNPOD_SECRET_civitai_token }}\",\"JUPYTER_TOKEN\":\"{{ RUNPOD_SECRET_jupyter_token }}\"}"
 
 # On repart de TEMPLATE_ID si déjà connu (évite une recherche par nom, plus rapide et sans
 # ambiguïté en cas d'homonymes) ; sinon on cherche parmi tes templates existants.
@@ -30,6 +34,7 @@ if [[ -n "${TEMPLATE_ID:-}" ]]; then
     --image "${IMAGE}" \
     --container-disk-in-gb "${CONTAINER_DISK_GB}" \
     --ports "${PORTS}" \
+    --port-labels "${PORT_LABELS}" \
     --env "${ENV_JSON}" \
     -o json)
 else
@@ -41,16 +46,12 @@ else
     --volume-in-gb "${VOLUME_SIZE_GB}" \
     --volume-mount-path "${VOLUME_MOUNT_PATH}" \
     --ports "${PORTS}" \
+    --port-labels "${PORT_LABELS}" \
     --env "${ENV_JSON}" \
     -o json)
 fi
 
-# Masque les tokens avant affichage (la réponse API peut les réverbérer).
-REDACTED_OUT="$OUT"
-[[ -n "${HF_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${HF_TOKEN}/***HF_TOKEN***}"
-[[ -n "${CIVITAI_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${CIVITAI_TOKEN}/***CIVITAI_TOKEN***}"
-[[ -n "${JUPYTER_TOKEN:-}" ]] && REDACTED_OUT="${REDACTED_OUT//${JUPYTER_TOKEN}/***JUPYTER_TOKEN***}"
-echo "$REDACTED_OUT"
+echo "$OUT"
 
 NEW_ID=$(echo "$OUT" | jq -r '.id // empty')
 if [[ -z "$NEW_ID" ]]; then

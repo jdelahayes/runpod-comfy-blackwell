@@ -35,7 +35,8 @@ if [[ "$#" -eq 0 && -n "${MODEL_TAGS:-}" ]]; then
 fi
 
 echo ">> Connexion : ${SSH_CMD}"
-# HF_TOKEN/CIVITAI_TOKEN passés explicitement : une session SSH n'hérite pas forcément
-# des env définies au démarrage du pod (--env), selon la config PAM/sshd de l'image.
+# Les tokens ne transitent jamais en clair depuis .env : le pod les reçoit des secrets RunPod
+# et entrypoint.sh les persiste dans /etc/environment. On charge ce fichier explicitement, car
+# une session SSH n'hérite pas forcément des env du conteneur selon la config PAM/sshd.
 # shellcheck disable=SC2086
-$SSH_CMD "HF_TOKEN=${HF_TOKEN:-} CIVITAI_TOKEN=${CIVITAI_TOKEN:-} /opt/scripts/download_models.py ${VOLUME_MOUNT_PATH}/models $(printf '%q ' "${ARGS[@]}")"
+$SSH_CMD "set -a; . /etc/environment; set +a; /opt/scripts/download_models.py ${VOLUME_MOUNT_PATH}/models $(printf '%q ' "${ARGS[@]}")"
