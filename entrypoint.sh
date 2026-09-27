@@ -35,11 +35,18 @@ setup_ssh() {
 
 # --- Lien des modèles depuis le Network Volume ---
 link_models() {
-  if [[ ! -d "$MODELS_VOLUME_DIR" ]]; then
-    echo ">> Aucun Network Volume monté sur ${MODELS_VOLUME_DIR}."
+  local mount_point
+  mount_point="$(dirname "$MODELS_VOLUME_DIR")"
+  # On teste le point de montage (ex: /runpod-volume), pas MODELS_VOLUME_DIR lui-même : sur un
+  # volume neuf, le sous-dossier models/ n'existe pas encore et ne sera jamais créé si on
+  # bloque ici (bug vécu : ComfyUI démarrait alors avec ses dossiers models/ locaux vides,
+  # jamais remplacés par les liens symboliques, même après un téléchargement sur le volume).
+  if [[ ! -d "$mount_point" ]]; then
+    echo ">> Aucun Network Volume monté sur ${mount_point}."
     echo ">> Les dossiers models/ de ComfyUI resteront vides tant qu'aucun modèle n'y est copié."
     return
   fi
+  mkdir -p "$MODELS_VOLUME_DIR"
 
   for sub in diffusion_models text_encoders vae loras embeddings model_patches checkpoints; do
     mkdir -p "${MODELS_VOLUME_DIR}/${sub}"
@@ -64,6 +71,11 @@ setup_jupyter() {
   local origin
   origin=$(proxy_origin 8888)
   mkdir -p /workspace /root/.local/share/jupyter/runtime
+  # SHELL n'est pas exporté par défaut dans un conteneur Docker. jupyter_server_terminals
+  # (terminado) s'en sert pour choisir le shell du terminal web ; sans ça il retombe sur un
+  # shell minimal sans historique ni auto-complétion. root a bien /bin/bash comme shell par
+  # défaut (/etc/passwd) mais ça ne suffit pas, terminado regarde $SHELL en priorité.
+  export SHELL=/bin/bash
   nohup jupyter lab \
     --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
     --IdentityProvider.token="${token}" \
