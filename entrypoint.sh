@@ -77,7 +77,7 @@ setup_jupyter() {
 # session ouverte via sshd n'hérite pas de l'environnement du conteneur passé par --env,
 # seulement de ce qui est écrit dans /etc/environment, lu par pam_env).
 persist_tokens() {
-  for var in HF_TOKEN CIVITAI_TOKEN; do
+  for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN; do
     if [[ -n "${!var:-}" ]]; then
       sed -i "/^${var}=/d" /etc/environment
       echo "${var}=${!var}" >> /etc/environment
@@ -85,7 +85,21 @@ persist_tokens() {
   done
 }
 
+# Même problème que les tokens ci-dessus, mais pour PATH : /etc/environment d'Ubuntu ne
+# contient qu'un PATH système par défaut, sans /opt/venv/bin. Sans ça, une session SSH (ou
+# une commande exécutée via `ssh pod "commande"`) ne trouve ni python, ni pip, ni hf, ni uv.
+persist_path() {
+  local base_path
+  base_path=$(sed -nE 's/^PATH="?([^"]*)"?$/\1/p' /etc/environment)
+  base_path="${base_path:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin}"
+  if [[ "$base_path" != *"/opt/venv/bin"* ]]; then
+    sed -i '/^PATH=/d' /etc/environment
+    echo "PATH=\"/opt/venv/bin:${base_path}\"" >> /etc/environment
+  fi
+}
+
 setup_ssh
+persist_path
 persist_tokens
 link_models
 setup_jupyter

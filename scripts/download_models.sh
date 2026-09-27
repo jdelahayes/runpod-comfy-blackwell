@@ -33,11 +33,15 @@ else
   echo ">> Pas de HF_TOKEN : téléchargement anonyme (suffisant pour ces dépôts publics)."
 fi
 
-python -m pip install -q -U "huggingface_hub[hf_transfer]"
-export HF_HUB_ENABLE_HF_TRANSFER=1
+# huggingface_hub 2.0 a supprimé la commande "huggingface-cli" (remplacée par "hf") ET
+# l'extra "hf_transfer" (Xet est désormais le mécanisme de transfert par défaut, plus besoin
+# d'extra). On plafonne à <2.0 : c'est de toute façon la contrainte déjà posée par transformers/
+# tokenizers (déjà installés par ComfyUI), donc ça évite aussi le conflit de dépendances pip.
+# Pas de -U : si une version <2.0 satisfaisante est déjà installée, on ne touche à rien.
+python -m pip install -q "huggingface_hub<2.0"
 
 echo ">> [1/3] Kit turbo (int8_convrot pruned + text encoder NVFP4 + VAE) ~42 Go"
-huggingface-cli download "${BASE_REPO}" \
+hf download "${BASE_REPO}" \
   diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors \
   diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors \
   text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors \
@@ -46,7 +50,7 @@ huggingface-cli download "${BASE_REPO}" \
   --local-dir "${MODELS_DIR}"
 
 echo ">> [2/3] LoRA turbo (test rapide de prompts, 4-8 steps)"
-huggingface-cli download "${TURBO_REPO}" \
+hf download "${TURBO_REPO}" \
   minimax_h3_fl2v_turbo_4step_v1.1_768p_comfyui_resized_avg_rank_64_bf16.safetensors \
   minimax_h3_ref2v_turbo_4step_v0.1_comfyui_resized_avg_rank_21_bf16.safetensors \
   minimax_h3_hyperflow_8step_v1.0_comfyui_pruned_bf16.safetensors \
@@ -54,7 +58,7 @@ huggingface-cli download "${TURBO_REPO}" \
 
 if [[ "${DOWNLOAD_FULL_QUALITY:-0}" == "1" ]]; then
   echo ">> [3/3] Poids qualité maximale (non-pruned, sans LoRA) ~+40 Go"
-  huggingface-cli download "${BASE_REPO}" \
+  hf download "${BASE_REPO}" \
     diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors \
     diffusion_models/minimax_h3_ref2va_int8_convrot.safetensors \
     --local-dir "${MODELS_DIR}"
