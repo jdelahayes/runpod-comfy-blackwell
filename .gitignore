@@ -1,2 +1,4 @@
 deploy/.env
 *.log
+__pycache__/
+*.pyc
