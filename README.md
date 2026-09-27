@@ -103,6 +103,11 @@ directement la valeur à mettre dans `IMAGE` de `deploy/.env`.
 
 Prérequis : [`runpodctl`](https://github.com/runpod/runpodctl) installé et une clé API RunPod.
 
+Chaque script existe en deux versions équivalentes dans `deploy/` : `NN-nom.sh` (bash + `jq`)
+et `NN-nom.py` (Python 3 stdlib uniquement — pas de dépendance à installer). Les deux lisent/
+écrivent le même `deploy/.env`, utilise celle qui te convient. Les exemples ci-dessous utilisent
+les `.sh` ; remplace juste l'extension pour la version Python (`./02-start-pod.py`, etc.).
+
 `deploy/.env` accepte aussi `HF_TOKEN` (Hugging Face) et `CIVITAI_TOKEN` (CivitAI, câblé en
 prévision — aucun script actuel ne l'utilise encore). Propagés au pod à la création, persistés
 dans `/etc/environment` pour toute session SSH ultérieure, et masqués à l'affichage dans
