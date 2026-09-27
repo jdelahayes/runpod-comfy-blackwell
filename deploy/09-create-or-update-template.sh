@@ -13,7 +13,7 @@ command -v jq >/dev/null 2>&1 || {
 : "${TEMPLATE_NAME:?TEMPLATE_NAME manquant dans deploy/.env}"
 
 PORTS="8188/http,8888/http,22/tcp"
-ENV_JSON="{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}"
+ENV_JSON="{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"MODEL_TAGS\":\"${MODEL_TAGS:-turbo}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}"
 
 # On repart de TEMPLATE_ID si déjà connu (évite une recherche par nom, plus rapide et sans
 # ambiguïté en cas d'homonymes) ; sinon on cherche parmi tes templates existants.

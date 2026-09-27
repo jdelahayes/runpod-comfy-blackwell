@@ -20,7 +20,7 @@ OUT=$(runpodctl pod create \
   --network-volume-id "${VOLUME_ID}" \
   --volume-mount-path "${VOLUME_MOUNT_PATH}" \
   --ports "${PORTS}" \
-  --env "{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"DOWNLOAD_FULL_QUALITY\":\"${DOWNLOAD_FULL_QUALITY}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}" \
+  --env "{\"MODELS_AUTO_DOWNLOAD\":\"${MODELS_AUTO_DOWNLOAD}\",\"MODEL_TAGS\":\"${MODEL_TAGS:-turbo}\",\"HF_TOKEN\":\"${HF_TOKEN:-}\",\"CIVITAI_TOKEN\":\"${CIVITAI_TOKEN:-}\",\"JUPYTER_TOKEN\":\"${JUPYTER_TOKEN:-}\"}" \
   --wait \
   -o json)
 
@@ -56,8 +56,8 @@ if [[ "${#HTTP_PORTS[@]}" -eq 0 ]]; then
 fi
 
 if [[ "${MODELS_AUTO_DOWNLOAD}" == "1" ]]; then
-  echo ">> MODELS_AUTO_DOWNLOAD=1 : le pod télécharge les modèles avant de démarrer ComfyUI,"
-  echo "   ça peut prendre plusieurs minutes (~42 Go pour le kit turbo) avant que l'URL réponde."
+  echo ">> MODELS_AUTO_DOWNLOAD=1 : le pod télécharge les modèles (tag: ${MODEL_TAGS:-turbo}) avant"
+  echo "   de démarrer ComfyUI, ça peut prendre plusieurs minutes avant que l'URL réponde."
 fi
 
 echo ">> Attente que les URLs répondent (timeout ${URL_WAIT_TIMEOUT}s) :"

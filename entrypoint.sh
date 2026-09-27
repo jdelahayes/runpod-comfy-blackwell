@@ -117,8 +117,9 @@ link_models
 setup_jupyter
 
 if [[ "${MODELS_AUTO_DOWNLOAD:-0}" == "1" ]]; then
-  echo ">> MODELS_AUTO_DOWNLOAD=1 : téléchargement des poids MiniMax H3 manquants..."
-  /opt/scripts/download_models.sh "$MODELS_VOLUME_DIR" || echo ">> Téléchargement échoué, on démarre quand même."
+  echo ">> MODELS_AUTO_DOWNLOAD=1 : téléchargement des modèles (tags: ${MODEL_TAGS:-turbo})..."
+  /opt/scripts/download_models.py "$MODELS_VOLUME_DIR" --tag "${MODEL_TAGS:-turbo}" \
+    || echo ">> Téléchargement échoué, on démarre quand même."
 fi
 
 # Une commande explicite (ex: `docker run image bash`, utile pour inspecter/debugger le

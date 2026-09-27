@@ -21,23 +21,39 @@ Network Volume RunPod  →  ComfyUI/models/{diffusion_models,text_encoders,vae,l
     turbo + qualité max)
 ```
 
-## MiniMax H3 : turbo pour itérer, qualité max pour le rendu final
+## MiniMax H3 : modèles par tag, config JSON éditable
 
 [MiniMax H3](https://huggingface.co/Comfy-Org/MiniMax-H3) (sorti le 31/07/2026, poids ouverts,
 support natif ComfyUI depuis la v0.30.0) génère de la vidéo 2K/15s avec audio stéréo natif à
 partir de texte/image/vidéo/audio de référence.
 
-Deux jeux de poids sont téléchargés par `scripts/download_models.sh` :
+Les modèles à télécharger sont décrits dans `scripts/models.json` (embarqué dans l'image en
+`/opt/scripts/models.json`), chacun avec un `id` unique et une liste de `tags`. Le téléchargement
+se fait par `scripts/download_models.py`, qui sélectionne soit par tag (`--tag`), soit par id
+précis (`--id`), depuis ce fichier par défaut ou un fichier custom (`--config`) :
 
-- **Kit turbo** (par défaut) : diffusion models `pruned + int8_convrot` (~42 Go) + LoRA turbo
-  4-8 steps (`drbaph/MiniMax-H3-Turbo-Lora-ComfyUI`). Génère en quelques secondes → pour valider
-  rapidement un prompt/composition.
-- **Qualité maximale** (`DOWNLOAD_FULL_QUALITY=1`) : diffusion models non-pruned `int8_convrot`
-  (sans LoRA turbo, tous les steps). Plus lent, à réserver au rendu final une fois le prompt
-  validé avec le kit turbo.
+```bash
+./07-download-models.sh --list                # explorer les modeles/tags disponibles sur le pod
+./07-download-models.sh                        # tag MODEL_TAGS de .env (defaut: turbo)
+./07-download-models.sh --tag hq               # un tag precis
+./07-download-models.sh --id lora-fl2v-8step   # un seul modele par id
+./07-download-models.sh --tag turbo,compact    # cumule plusieurs tags
+```
+
+Tags fournis par défaut :
+
+| Tag | Contenu | Usage |
+|---|---|---|
+| `turbo` (défaut) | FL2VA/Ref2VA `int8_convrot` non-pruned + LoRA turbo LightX2V (4 et 8 steps) | Rendu rapide (4-8 steps), fonctionne tel quel avec le workflow ComfyUI par défaut — c'est la même base que celui-ci attend. |
+| `hq` | Même base non-pruned, sans LoRA | Rendu qualité max, tous les steps, plus lent. |
+| `compact` | Variante `pruned` (un peu plus légère) + LoRA HyperFlow 8 steps | Empreinte disque minimale, mais nécessite un sampler custom (Euler + scheduler normal + sigmas manuels — voir la `description` de `lora-hyperflow-8step` dans `models.json`). À ne PAS mélanger avec les LoRA `turbo` (LightX2V), qui exigent la base non-pruned. |
 
 `int8_convrot` est privilégié à `fp8_scaled` sur les recommandations officielles Comfy-Org
 (meilleure qualité) dès lors qu'on est sur CUDA 13.0 — ce qui est le cas ici.
+
+Pour ajouter un modèle : éditer `scripts/models.json` (ou fournir ton propre fichier via
+`--config`), avec `id`, `tags`, `repo` (dépôt Hugging Face), `files` (chemins dans le dépôt) et
+optionnellement `local_subdir` (sous-dossier de destination, ex: `loras`).
 
 ⚠️ L'usage commercial des vidéos générées localement nécessite une licence commerciale
 MiniMax (voir la doc du modèle).
@@ -105,8 +121,8 @@ cd deploy
 
 ./01-create-volume.sh      # une seule fois : crée le Network Volume (250 Go par défaut)
 ./02-start-pod.sh          # crée le pod (image + GPU + volume monté)
-./07-download-models.sh    # une seule fois : peuple le volume (kit turbo)
-                            # DOWNLOAD_FULL_QUALITY=1 dans .env pour aussi tirer la qualité max
+./07-download-models.sh    # une seule fois : peuple le volume (tag MODEL_TAGS de .env, defaut turbo)
+                            # --tag hq / --id <id> / --list : voir la section MiniMax H3 ci-dessus
 
 ./06-ssh.sh                # ouvrir un shell SSH sur le pod
 ./08-status.sh             # état du pod

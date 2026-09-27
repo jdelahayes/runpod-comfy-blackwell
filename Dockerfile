@@ -43,8 +43,9 @@ RUN uv pip install --no-cache-dir jupyterlab
 RUN find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} +
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY scripts/download_models.sh /opt/scripts/download_models.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /opt/scripts/download_models.sh
+COPY scripts/download_models.py /opt/scripts/download_models.py
+COPY scripts/models.json /opt/scripts/models.json
+RUN chmod +x /usr/local/bin/entrypoint.sh /opt/scripts/download_models.py
 
 EXPOSE 8188 8888 22
 
