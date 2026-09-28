@@ -37,6 +37,11 @@ un volume vide est long, les suivants sont rapides.
 Les profils disponibles sont définis dans [`scripts/profiles.json`](scripts/profiles.json) ;
 `./07-sync-profiles.py list` les affiche avec leur description.
 
+La taille de chaque profil (`extends` compris, custom nodes non comptés) est indiquée dans
+`profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec
+`scripts/profile_sizes.py` : il interroge Hugging Face / CivitAI sans rien télécharger et met à
+jour le fichier (`--dry-run` pour seulement afficher, `HF_TOKEN` pour les dépôts gated).
+
 ### Fichier de profils
 
 Par défaut, le pod utilise `scripts/profiles.json`, embarqué dans l'image en

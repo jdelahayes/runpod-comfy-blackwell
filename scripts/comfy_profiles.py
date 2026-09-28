@@ -34,7 +34,8 @@ from pathlib import Path
 
 DEFAULT_CONFIG = Path("/opt/scripts/profiles.json")
 SECTIONS = ("custom_nodes", "pip", "models", "workflows")
-PROFILE_KEYS = {"description", "extends", *SECTIONS}
+# "size" : total calculé par profile_sizes.py (informatif, ignoré par sync).
+PROFILE_KEYS = {"description", "size", "extends", *SECTIONS}
 SOURCES = ("hf", "url", "civitai")
 # Cloudflare (devant civitai.com notamment) rejette le User-Agent par défaut de urllib.
 USER_AGENT = "runpod-comfy-profiles"
@@ -341,6 +342,8 @@ def cmd_list(profiles, _args):
         counts = ", ".join(f"{len(profile.get(s, []))} {s}" for s in SECTIONS if profile.get(s))
         suffix = f"  (extends: {', '.join(extends)})" if extends else ""
         print(f"- {name}{suffix}")
+        if profile.get("size"):
+            print(f"    taille : {profile['size']}")
         if profile.get("description"):
             print(f"    {profile['description']}")
         if counts:
