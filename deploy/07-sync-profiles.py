@@ -9,7 +9,7 @@ Usage:
   ./07-sync-profiles.py sync krea2,flux2-klein  # sync de profils précis
   ./07-sync-profiles.py sync krea2 --dry-run    # ce qui serait installé, sans rien faire
   ./07-sync-profiles.py list                    # profils disponibles
-  ./07-sync-profiles.py show minimax-h3         # contenu d'un profil et ce qui est déjà là
+  ./07-sync-profiles.py show minimax-h3-all     # contenu d'un profil et ce qui est déjà là
 """
 import shlex
 import subprocess
@@ -26,7 +26,7 @@ def main():
     if not args:
         profiles = lib.require_env(
             "COMFY_PROFILES",
-            "COMFY_PROFILES vide dans .env : indique les profils, ex. ./07-sync-profiles.py sync minimax-h3",
+            "COMFY_PROFILES vide dans .env : indique les profils, ex. ./07-sync-profiles.py sync minimax-h3-all",
         )
         args = ["sync", profiles]
 

@@ -31,18 +31,8 @@ installe ce qui manque pour les profils listés dans `COMFY_PROFILES` (séparés
 puis lance ComfyUI. Ce qui est déjà présent n'est jamais retéléchargé : le premier démarrage sur
 un volume vide est long, les suivants sont rapides.
 
-| Profil | Contenu | Taille |
-|---|---|---|
-| `minimax-h3` | Vidéo [MiniMax H3](https://huggingface.co/Comfy-Org/MiniMax-H3) turbo : base FL2VA/Ref2VA `int8_convrot` non-pruned + LoRA turbo LightX2V (4 et 8 steps). Fonctionne tel quel avec le workflow ComfyUI par défaut. | ~89 Go |
-| `minimax-h3-hq` | Même base, sans LoRA : qualité max, tous les steps, plus lent. | ~87 Go |
-| `minimax-h3-compact` | Variantes `pruned` + LoRA HyperFlow 8 steps. Sampler custom requis (Euler + scheduler normal + sigmas manuels, voir `profiles.json`). À ne pas mélanger avec les LoRA LightX2V. | ~65 Go |
-| `krea2` | Image [Krea 2](https://huggingface.co/Comfy-Org/Krea-2) Turbo `int8_convrot`, text encoder Qwen3-VL 4B, VAE Qwen Image. | ~23 Go |
-| `krea2-raw` | Krea 2 Raw (non distillé), mêmes composants. | ~23 Go |
-| `krea2-styles` | `krea2` + les 10 LoRA de style officiels (mots déclencheurs dans le README du dépôt). | +4,7 Go |
-| `flux2-klein` | Image FLUX.2 [klein] 4B distillé, text encoder Qwen3 4B, VAE FLUX.2. Apache 2.0. | ~16 Go |
-| `flux2-klein-9b` | FLUX.2 [klein] 9B, text encoder Qwen3 8B. Dépôt BFL gated, licence non commerciale : accepter la licence sur [la page du modèle](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) et fournir `HF_TOKEN`. | ~35 Go |
-
-Les profils `*-common` ne servent que de base partagée aux autres (via `extends`).
+Les profils disponibles sont définis dans [`scripts/profiles.json`](scripts/profiles.json) ;
+`./07-sync-profiles.py list` les affiche avec leur description.
 
 ### Fichier de profils
 
@@ -102,7 +92,7 @@ ignorées et peuvent servir de commentaires.)
 
 ```bash
 ./07-sync-profiles.py list                     # profils disponibles
-./07-sync-profiles.py show minimax-h3          # contenu d'un profil, et ce qui est déjà là
+./07-sync-profiles.py show minimax-h3-all      # contenu d'un profil, et ce qui est déjà là
 ./07-sync-profiles.py sync krea2 --dry-run     # ce qui serait installé, sans rien faire
 ./07-sync-profiles.py sync krea2,flux2-klein   # installe sans redémarrer le pod
 ./07-sync-profiles.py                          # sync des profils COMFY_PROFILES de .env
