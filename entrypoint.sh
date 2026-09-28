@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Point d'entrée du pod : démarre SSH (standard RunPod) et JupyterLab, installe ce qui manque
 # pour les profils de COMFY_PROFILES (modèles, custom nodes, ... — voir scripts/profiles.json),
-# lie les modèles depuis le Network Volume, puis lance ComfyUI.
+# place models/, input/, output/ et user/ sur le Network Volume, puis lance ComfyUI.
 set -euo pipefail
 
 COMFY_HOME="${COMFY_HOME:-/workspace/ComfyUI}"
@@ -33,39 +33,42 @@ setup_ssh() {
   /usr/sbin/sshd
 }
 
-# --- Lien des modèles depuis le Network Volume ---
-# Chaque sous-dossier de ComfyUI/models (ceux livrés par ComfyUI + ceux créés sur le volume,
-# ex. par un profil) devient un lien vers le volume. Un éventuel contenu local autre que les
-# fichiers "put_*_here" (ex. models/configs/*.yaml livrés par ComfyUI) est d'abord copié sur le
-# volume, sans écraser l'existant.
-link_models() {
+# --- Persistance sur le Network Volume ---
+# ComfyUI/models, input, output et user deviennent chacun un lien vers le volume
+# (/runpod-volume/{models,input,output,user}) : tout ce qui y est écrit est persisté, y compris les
+# sous-dossiers créés à la volée par des custom nodes (ex. models/refmods pour MiniMax H3), et
+# user/ (workflows enregistrés, réglages ComfyUI, config du Manager).
+# Le contenu local éventuel (ex. models/configs/*.yaml ou input/example.png livrés par ComfyUI)
+# est d'abord copié sur le volume, sans écraser l'existant. Les fichiers vides "put_*_here" et
+# les liens symboliques (ancien schéma : un lien par sous-dossier de models/) sont ignorés.
+link_to_volume() {
+  local local_dir="$1" volume_dir="$2"
+  [[ -L "$local_dir" ]] && return
+  mkdir -p "$volume_dir"
+  if [[ -d "$local_dir" ]]; then
+    find "$local_dir" -mindepth 1 -maxdepth 1 ! -name 'put_*_here' ! -type l \
+      -exec cp -a --update=none {} "${volume_dir}/" \;
+    find "$volume_dir" -mindepth 2 -maxdepth 2 -type f -empty -name 'put_*_here' -delete
+    rm -rf "$local_dir"
+  fi
+  ln -s "$volume_dir" "$local_dir"
+  echo ">> ${local_dir} -> ${volume_dir}"
+}
+
+link_volume_dirs() {
   local mount_point
   mount_point="$(dirname "$MODELS_VOLUME_DIR")"
   # On teste le point de montage (ex: /runpod-volume), pas MODELS_VOLUME_DIR lui-même : sur un
-  # volume neuf, le sous-dossier models/ n'existe pas encore et ne sera jamais créé si on
-  # bloque ici (bug vécu : ComfyUI démarrait alors avec ses dossiers models/ locaux vides,
-  # jamais remplacés par les liens symboliques, même après un téléchargement sur le volume).
+  # volume neuf, le sous-dossier models/ n'existe pas encore.
   if [[ ! -d "$mount_point" ]]; then
-    echo ">> Aucun Network Volume monté sur ${mount_point}."
-    echo ">> Les dossiers models/ de ComfyUI resteront vides tant qu'aucun modèle n'y est copié."
+    echo ">> Aucun Network Volume monté sur ${mount_point} : models/, input/, output/ et user/"
+    echo ">> locaux au conteneur (perdus à sa suppression)."
     return
   fi
-  mkdir -p "$MODELS_VOLUME_DIR"
-
-  local dir sub target
-  for dir in "${COMFY_HOME}/models"/*/ "${MODELS_VOLUME_DIR}"/*/; do
-    [[ -d "$dir" ]] || continue
-    sub=$(basename "$dir")
-    target="${COMFY_HOME}/models/${sub}"
-    [[ -L "$target" ]] && continue
-    mkdir -p "${MODELS_VOLUME_DIR}/${sub}"
-    if [[ -d "$target" ]]; then
-      find "$target" -mindepth 1 -maxdepth 1 ! -name 'put_*_here' -exec cp -a --update=none {}"${MODELS_VOLUME_DIR}/${sub}/" \;
-      rm -rf "$target"
-    fi
-    ln -s "${MODELS_VOLUME_DIR}/${sub}" "$target"
-    echo ">> ${target} -> ${MODELS_VOLUME_DIR}/${sub}"
-  done
+  link_to_volume "${COMFY_HOME}/models" "$MODELS_VOLUME_DIR"
+  link_to_volume "${COMFY_HOME}/input" "${mount_point}/input"
+  link_to_volume "${COMFY_HOME}/output" "${mount_point}/output"
+  link_to_volume "${COMFY_HOME}/user" "${mount_point}/user"
 }
 
 # --- JupyterLab (arrière-plan, lancé avant le exec final vers ComfyUI) ---
@@ -123,16 +126,16 @@ setup_ssh
 persist_path
 persist_env
 setup_jupyter
+link_volume_dirs
 
-# Installe ce qui manque pour les profils demandés, avant de lier les modèles (link_models lie
-# aussi les sous-dossiers que le profil vient de créer sur le volume) et de lancer ComfyUI (qui
-# doit voir les nouveaux custom nodes). Long au premier démarrage sur un volume vide.
+# Installe ce qui manque pour les profils demandés (après link_volume_dirs : modèles et workflows
+# sont ainsi écrits directement sur le volume), avant de lancer ComfyUI (qui doit voir les
+# nouveaux custom nodes). Long au premier démarrage sur un volume vide.
 if [[ -n "${COMFY_PROFILES:-}" ]]; then
   echo ">> Synchronisation des profils : ${COMFY_PROFILES}"
   /opt/scripts/comfy_profiles.py sync \
     || echo ">> Synchronisation incomplète (voir ci-dessus), on démarre quand même."
 fi
-link_models
 
 # Une commande explicite (ex: `docker run image bash`, utile pour inspecter/debugger le
 # conteneur) prend le pas sur le démarrage par défaut de ComfyUI.

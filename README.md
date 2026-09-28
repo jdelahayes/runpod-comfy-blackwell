@@ -18,10 +18,13 @@ runpod-blackwell-base (CUDA 13.0 / PyTorch 2.14 / SageAttention)
 runpod-comfy-blackwell (ComfyUI v0.37.2 + Manager intégré (--enable-manager) + KJNodes)
         │
         ▼  (au démarrage du pod)
-Network Volume RunPod  →  ComfyUI/models/{diffusion_models,text_encoders,vae,loras}
-   (modèles des profils    (liens symboliques créés par entrypoint.sh)
-    COMFY_PROFILES)
+Network Volume RunPod           →  ComfyUI/{models,input,output,user}
+  /runpod-volume/{models,input,output,user}   (liens symboliques créés par entrypoint.sh)
 ```
+
+Tout ce que ComfyUI écrit dans `models/`, `input/`, `output/` et `user/` (workflows enregistrés,
+réglages, config du Manager) est donc persisté sur le volume,
+y compris les sous-dossiers créés à la volée par des custom nodes (ex. `models/refmods`).
 
 ## Profils d'utilisation
 
