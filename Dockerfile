@@ -23,14 +23,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
 
 WORKDIR /workspace
 
+# manager_requirements.txt : dépendances du Manager intégré à ComfyUI (gestion des custom
+# nodes depuis l'UI), activé au lancement par --enable-manager (voir entrypoint.sh).
 RUN git clone --branch "${COMFYUI_VERSION}" --depth 1 \
       https://github.com/Comfy-Org/ComfyUI.git "${COMFY_HOME}" \
-    && uv pip install --no-cache-dir -r "${COMFY_HOME}/requirements.txt"
-
-# ComfyUI-Manager : gestion des custom nodes depuis l'UI.
-RUN git clone --depth 1 https://github.com/Comfy-Org/ComfyUI-Manager.git \
-      "${COMFY_HOME}/custom_nodes/ComfyUI-Manager" \
-    && uv pip install --no-cache-dir -r "${COMFY_HOME}/custom_nodes/ComfyUI-Manager/requirements.txt"
+    && uv pip install --no-cache-dir -r "${COMFY_HOME}/requirements.txt" \
+    && uv pip install --no-cache-dir -r "${COMFY_HOME}/manager_requirements.txt"
 
 # KJNodes : fournit le node "Patch Sage Attention KJ" (doc ComfyUI, ~2x sur MiniMax H3).
 RUN git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git \

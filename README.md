@@ -13,7 +13,7 @@ démarre vite, à chaque fois. Voir `deploy/` pour tout le cycle de vie via `run
 runpod-blackwell-base (CUDA 13.0 / PyTorch 2.14 / SageAttention)
         │
         ▼
-runpod-comfy-blackwell (ComfyUI v0.37.2 + Manager + KJNodes)
+runpod-comfy-blackwell (ComfyUI v0.37.2 + Manager intégré (--enable-manager) + KJNodes)
         │
         ▼  (au démarrage du pod)
 Network Volume RunPod  →  ComfyUI/models/{diffusion_models,text_encoders,vae,loras}
