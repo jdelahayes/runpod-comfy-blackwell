@@ -101,20 +101,11 @@
       ]
     },
 
-    "flux2-klein": {
-      "description": "FLUX.2 [klein] 4B distillé (image, rapide), text encoder Qwen3 4B, VAE FLUX.2. ~16 Go. Licence Apache 2.0, aucun token requis.",
-      "size": "16,1 Go",
-      "models": [
-        {"type": "diffusion_models", "hf": "Comfy-Org/vae-text-encorder-for-flux-klein-4b", "file": "split_files/diffusion_models/flux-2-klein-4b.safetensors", "size": 7751105712},
-        {"type": "text_encoders", "hf": "Comfy-Org/vae-text-encorder-for-flux-klein-4b", "file": "split_files/text_encoders/qwen_3_4b.safetensors", "size": 8044982048},
-        {"type": "vae", "hf": "Comfy-Org/vae-text-encorder-for-flux-klein-4b", "file": "split_files/vae/flux2-vae.safetensors", "size": 336211292}
-      ]
-    },
     "flux2-klein-9b": {
-      "description": "FLUX.2 [klein] 9B (meilleure qualité), text encoder Qwen3 8B, VAE FLUX.2. ~35 Go. Dépôt BFL gated, licence non commerciale : accepter la licence sur https://huggingface.co/black-forest-labs/FLUX.2-klein-9B et fournir HF_TOKEN.",
-      "size": "16,7 Go + 1 fichier(s) de taille inconnue",
+      "description": "FLUX.2 [klein] 9B",
+      "size": "34,9 Go",
       "models": [
-        {"type": "diffusion_models", "hf": "black-forest-labs/FLUX.2-klein-9B", "file": "flux-2-klein-9b.safetensors"},
+        {"type": "diffusion_models", "hf": "black-forest-labs/FLUX.2-klein-9B", "file": "flux-2-klein-9b.safetensors", "size": 18157185168},
         {"type": "text_encoders", "hf": "Comfy-Org/vae-text-encorder-for-flux-klein-9b", "file": "split_files/text_encoders/qwen_3_8b.safetensors", "size": 16381517176},
         {"type": "vae", "hf": "Comfy-Org/vae-text-encorder-for-flux-klein-9b", "file": "split_files/vae/flux2-vae.safetensors", "size": 336211292}
       ]
