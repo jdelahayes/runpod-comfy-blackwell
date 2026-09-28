@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Profils d'utilisation ComfyUI (minimax-h3-all, flux2-klein, ...) : chaque profil décrit les
+"""Profils d'utilisation ComfyUI (minimax-h3-all, flux2-klein-9b, ...) : chaque profil décrit les
 modèles, custom nodes, workflows et paquets pip dont il a besoin. `sync` installe ce qui
 manque et ne touche jamais à ce qui est déjà présent — relançable à volonté (c'est ce que fait
 entrypoint.sh à chaque démarrage du pod pour les profils de COMFY_PROFILES).

@@ -102,7 +102,7 @@ ignorées et peuvent servir de commentaires.)
 ./07-sync-profiles.py list                     # profils disponibles
 ./07-sync-profiles.py show minimax-h3-all      # contenu d'un profil, et ce qui est déjà là
 ./07-sync-profiles.py sync krea2 --dry-run     # ce qui serait installé, sans rien faire
-./07-sync-profiles.py sync krea2,flux2-klein   # installe sans redémarrer le pod
+./07-sync-profiles.py sync krea2,flux2-klein-9b # installe sans redémarrer le pod
 ./07-sync-profiles.py                          # sync des profils COMFY_PROFILES de .env
 ```
 
