@@ -16,8 +16,8 @@ def build_env_payload():
     # RunPod (Settings -> Secrets, à créer une fois sous les noms hf_token, civitai_token,
     # jupyter_token), que RunPod substitue au démarrage du pod.
     return {
-        "MODELS_AUTO_DOWNLOAD": lib.get_env("MODELS_AUTO_DOWNLOAD", "0"),
-        "MODEL_TAGS": lib.get_env("MODEL_TAGS", "turbo"),
+        "COMFY_PROFILES": lib.get_env("COMFY_PROFILES"),
+        "COMFY_PROFILES_CONFIG": lib.get_env("COMFY_PROFILES_CONFIG"),
         "HF_TOKEN": "{{ RUNPOD_SECRET_hf_token }}",
         "CIVITAI_TOKEN": "{{ RUNPOD_SECRET_civitai_token }}",
         "JUPYTER_TOKEN": "{{ RUNPOD_SECRET_jupyter_token }}",

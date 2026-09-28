@@ -41,9 +41,10 @@ RUN uv pip install --no-cache-dir jupyterlab
 RUN find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} +
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY scripts/download_models.py /opt/scripts/download_models.py
-COPY scripts/models.json /opt/scripts/models.json
-RUN chmod +x /usr/local/bin/entrypoint.sh /opt/scripts/download_models.py
+# Profils d'utilisation (modèles, custom nodes, workflows...) : voir README.md, section Profils.
+COPY scripts/comfy_profiles.py /opt/scripts/comfy_profiles.py
+COPY scripts/profiles.json /opt/scripts/profiles.json
+RUN chmod +x /usr/local/bin/entrypoint.sh /opt/scripts/comfy_profiles.py
 
 EXPOSE 8188 8888 22
 

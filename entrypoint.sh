@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Point d'entrée du pod : lie les modèles depuis le Network Volume, démarre SSH (standard
-# RunPod) puis ComfyUI. Ne télécharge jamais de modèles lui-même (voir scripts/download_models.sh
-# et deploy/07-download-models.sh) pour ne pas ralentir chaque redémarrage de pod.
+# Point d'entrée du pod : démarre SSH (standard RunPod) et JupyterLab, installe ce qui manque
+# pour les profils de COMFY_PROFILES (modèles, custom nodes, ... — voir scripts/profiles.json),
+# lie les modèles depuis le Network Volume, puis lance ComfyUI.
 set -euo pipefail
 
 COMFY_HOME="${COMFY_HOME:-/workspace/ComfyUI}"
@@ -34,6 +34,10 @@ setup_ssh() {
 }
 
 # --- Lien des modèles depuis le Network Volume ---
+# Chaque sous-dossier de ComfyUI/models (ceux livrés par ComfyUI + ceux créés sur le volume,
+# ex. par un profil) devient un lien vers le volume. Un éventuel contenu local autre que les
+# fichiers "put_*_here" (ex. models/configs/*.yaml livrés par ComfyUI) est d'abord copié sur le
+# volume, sans écraser l'existant.
 link_models() {
   local mount_point
   mount_point="$(dirname "$MODELS_VOLUME_DIR")"
@@ -48,13 +52,17 @@ link_models() {
   fi
   mkdir -p "$MODELS_VOLUME_DIR"
 
-  for sub in diffusion_models text_encoders vae loras embeddings model_patches checkpoints; do
-    mkdir -p "${MODELS_VOLUME_DIR}/${sub}"
+  local dir sub target
+  for dir in "${COMFY_HOME}/models"/*/ "${MODELS_VOLUME_DIR}"/*/; do
+    [[ -d "$dir" ]] || continue
+    sub=$(basename "$dir")
     target="${COMFY_HOME}/models/${sub}"
-    if [[ -L "$target" ]]; then
-      continue
+    [[ -L "$target" ]] && continue
+    mkdir -p "${MODELS_VOLUME_DIR}/${sub}"
+    if [[ -d "$target" ]]; then
+      find "$target" -mindepth 1 -maxdepth 1 ! -name 'put_*_here' -exec cp -a --update=none {}"${MODELS_VOLUME_DIR}/${sub}/" \;
+      rm -rf "$target"
     fi
-    rm -rf "$target"
     ln -s "${MODELS_VOLUME_DIR}/${sub}" "$target"
     echo ">> ${target} -> ${MODELS_VOLUME_DIR}/${sub}"
   done
@@ -85,11 +93,12 @@ setup_jupyter() {
   echo ">> JupyterLab démarré sur le port 8888 (logs : /workspace/jupyter.log)"
 }
 
-# Rend HF_TOKEN/CIVITAI_TOKEN visibles dans les futures sessions SSH interactives (une
-# session ouverte via sshd n'hérite pas de l'environnement du conteneur passé par --env,
-# seulement de ce qui est écrit dans /etc/environment, lu par pam_env).
-persist_tokens() {
-  for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN; do
+# Rend les tokens et la config des profils visibles dans les futures sessions SSH (une session
+# ouverte via sshd n'hérite ni de l'environnement du conteneur passé par --env, ni des ENV de
+# l'image, seulement de ce qui est écrit dans /etc/environment, lu par pam_env). Utile pour
+# lancer /opt/scripts/comfy_profiles.py à la main ou via deploy/07-sync-profiles.sh.
+persist_env() {
+  for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN COMFY_HOME MODELS_VOLUME_DIR COMFY_PROFILES COMFY_PROFILES_CONFIG; do
     if [[ -n "${!var:-}" ]]; then
       sed -i "/^${var}=/d" /etc/environment
       echo "${var}=${!var}" >> /etc/environment
@@ -112,15 +121,18 @@ persist_path() {
 
 setup_ssh
 persist_path
-persist_tokens
-link_models
+persist_env
 setup_jupyter
 
-if [[ "${MODELS_AUTO_DOWNLOAD:-0}" == "1" ]]; then
-  echo ">> MODELS_AUTO_DOWNLOAD=1 : téléchargement des modèles (tags: ${MODEL_TAGS:-turbo})..."
-  /opt/scripts/download_models.py "$MODELS_VOLUME_DIR" --tag "${MODEL_TAGS:-turbo}" \
-    || echo ">> Téléchargement échoué, on démarre quand même."
+# Installe ce qui manque pour les profils demandés, avant de lier les modèles (link_models lie
+# aussi les sous-dossiers que le profil vient de créer sur le volume) et de lancer ComfyUI (qui
+# doit voir les nouveaux custom nodes). Long au premier démarrage sur un volume vide.
+if [[ -n "${COMFY_PROFILES:-}" ]]; then
+  echo ">> Synchronisation des profils : ${COMFY_PROFILES}"
+  /opt/scripts/comfy_profiles.py sync \
+    || echo ">> Synchronisation incomplète (voir ci-dessus), on démarre quand même."
 fi
+link_models
 
 # Une commande explicite (ex: `docker run image bash`, utile pour inspecter/debugger le
 # conteneur) prend le pas sur le démarrage par défaut de ComfyUI.

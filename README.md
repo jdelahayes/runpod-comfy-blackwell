@@ -1,7 +1,9 @@
 # runpod-comfy-blackwell
 
 ComfyUI (dernière stable, v0.37.2) sur [runpod-blackwell-base](../runpod-blackwell-base),
-prêt pour MiniMax H3 sur RunPod avec une RTX PRO 6000 (Blackwell, 96 Go VRAM).
+pour RunPod avec une RTX PRO 6000 (Blackwell, 96 Go VRAM). Les modèles et custom nodes de chaque
+usage (MiniMax H3, Krea 2, FLUX.2 [klein]...) sont décrits par des **profils** installés au
+démarrage du pod (voir [Profils d'utilisation](#profils-dutilisation)).
 
 Aucun poids de modèle dans l'image. Les modèles vivent sur un **Network Volume RunPod**
 persistant, montés au démarrage du pod — l'image reste petite (quelques Go) et le pod
@@ -17,43 +19,103 @@ runpod-comfy-blackwell (ComfyUI v0.37.2 + Manager intégré (--enable-manager) +
         │
         ▼  (au démarrage du pod)
 Network Volume RunPod  →  ComfyUI/models/{diffusion_models,text_encoders,vae,loras}
-   (poids MiniMax H3,      (liens symboliques créés par entrypoint.sh)
-    turbo + qualité max)
+   (modèles des profils    (liens symboliques créés par entrypoint.sh)
+    COMFY_PROFILES)
 ```
 
-## MiniMax H3 : modèles par tag, config JSON éditable
+## Profils d'utilisation
 
-[MiniMax H3](https://huggingface.co/Comfy-Org/MiniMax-H3) (sorti le 31/07/2026, poids ouverts,
-support natif ComfyUI depuis la v0.30.0) génère de la vidéo 2K/15s avec audio stéréo natif à
-partir de texte/image/vidéo/audio de référence.
+Un **profil** décrit tout ce dont un usage a besoin : modèles (diffusion, LoRA, VAE, text
+encoders...), custom nodes, workflows et paquets pip. Au démarrage du pod, `entrypoint.sh`
+installe ce qui manque pour les profils listés dans `COMFY_PROFILES` (séparés par des virgules)
+puis lance ComfyUI. Ce qui est déjà présent n'est jamais retéléchargé : le premier démarrage sur
+un volume vide est long, les suivants sont rapides.
 
-Les modèles à télécharger sont décrits dans `scripts/models.json` (embarqué dans l'image en
-`/opt/scripts/models.json`), chacun avec un `id` unique et une liste de `tags`. Le téléchargement
-se fait par `scripts/download_models.py`, qui sélectionne soit par tag (`--tag`), soit par id
-précis (`--id`), depuis ce fichier par défaut ou un fichier custom (`--config`) :
+| Profil | Contenu | Taille |
+|---|---|---|
+| `minimax-h3` | Vidéo [MiniMax H3](https://huggingface.co/Comfy-Org/MiniMax-H3) turbo : base FL2VA/Ref2VA `int8_convrot` non-pruned + LoRA turbo LightX2V (4 et 8 steps). Fonctionne tel quel avec le workflow ComfyUI par défaut. | ~89 Go |
+| `minimax-h3-hq` | Même base, sans LoRA : qualité max, tous les steps, plus lent. | ~87 Go |
+| `minimax-h3-compact` | Variantes `pruned` + LoRA HyperFlow 8 steps. Sampler custom requis (Euler + scheduler normal + sigmas manuels, voir `profiles.json`). À ne pas mélanger avec les LoRA LightX2V. | ~65 Go |
+| `krea2` | Image [Krea 2](https://huggingface.co/Comfy-Org/Krea-2) Turbo `int8_convrot`, text encoder Qwen3-VL 4B, VAE Qwen Image. | ~23 Go |
+| `krea2-raw` | Krea 2 Raw (non distillé), mêmes composants. | ~23 Go |
+| `krea2-styles` | `krea2` + les 10 LoRA de style officiels (mots déclencheurs dans le README du dépôt). | +4,7 Go |
+| `flux2-klein` | Image FLUX.2 [klein] 4B distillé, text encoder Qwen3 4B, VAE FLUX.2. Apache 2.0. | ~16 Go |
+| `flux2-klein-9b` | FLUX.2 [klein] 9B, text encoder Qwen3 8B. Dépôt BFL gated, licence non commerciale : accepter la licence sur [la page du modèle](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) et fournir `HF_TOKEN`. | ~35 Go |
+
+Les profils `*-common` ne servent que de base partagée aux autres (via `extends`).
+
+### Fichier de profils
+
+Par défaut, le pod utilise `scripts/profiles.json`, embarqué dans l'image en
+`/opt/scripts/profiles.json`. Pour le personnaliser sans rebuild, fais pointer
+`COMFY_PROFILES_CONFIG` vers le Network Volume, par exemple `/runpod-volume/config/profiles.json`.
+Si ce fichier n'existe pas encore, la config de l'image y est copiée au premier démarrage : il ne
+reste qu'à l'éditer (via JupyterLab par exemple), puis à relancer une synchronisation.
+
+Format :
+
+```jsonc
+{
+  "profiles": {
+    "mon-profil": {
+      "description": "Texte libre, affiché par `list`.",
+      "extends": ["krea2"],              // hérite de tout le contenu d'autres profils
+      "models": [
+        // type = sous-dossier de ComfyUI/models (loras, vae, diffusion_models, checkpoints...)
+        {"type": "loras", "hf": "org/depot", "file": "chemin/dans/le/depot.safetensors"},
+        {"type": "loras", "hf": "org/depot", "file": "x.safetensors", "revision": "main", "name": "renomme.safetensors"},
+        {"type": "checkpoints", "civitai": 123456, "name": "mon_modele.safetensors"},   // id de VERSION du modèle
+        {"type": "upscale_models", "url": "https://exemple.com/4x.pth", "name": "4x.pth"}
+      ],
+      "custom_nodes": [
+        {"git": "https://github.com/auteur/ComfyUI-Truc.git"},
+        {"git": "https://github.com/auteur/ComfyUI-Machin.git", "ref": "v1.2.0", "name": "Machin"}
+      ],
+      "workflows": [
+        {"url": "https://exemple.com/workflow.json", "name": "mon_workflow.json"}
+      ],
+      "pip": ["onnxruntime-gpu"]
+    }
+  }
+}
+```
+
+(Le vrai fichier est du JSON strict, sans commentaires. Les clés qui commencent par `//` sont
+ignorées et peuvent servir de commentaires.)
+
+- **Sources** (modèles et workflows) : une seule par élément parmi `hf` (+ `file`, et
+  optionnellement `revision`), `civitai` (id de version, utilise `CIVITAI_TOKEN`) ou `url`.
+  `name` fixe le nom du fichier local. Il est obligatoire pour `civitai` et `url`, et vaut par
+  défaut le nom de `file` pour `hf`.
+- **Destinations** : modèles dans `<volume>/models/<type>/`, custom nodes clonés dans
+  `<volume>/custom_nodes/` et liés dans `ComfyUI/custom_nodes/`, workflows dans
+  `ComfyUI/user/default/workflows/`. Sans volume, tout va directement dans `ComfyUI/`.
+- **Dépendances Python** : le `requirements.txt` et le `install.py` des custom nodes, ainsi que
+  les paquets `pip`, sont installés dans l'environnement Python du conteneur. Ils sont donc
+  réinstallés automatiquement sur un nouveau pod, même si le volume est déjà peuplé.
+- **Custom nodes déjà dans l'image** (ex. KJNodes) : laissés tels quels.
+- Une clé inconnue (faute de frappe) fait échouer la commande avant toute action.
+
+### Commandes
+
+`/opt/scripts/comfy_profiles.py` sur le pod, piloté à distance par `deploy/07-sync-profiles.py` :
 
 ```bash
-./07-download-models.sh --list                # explorer les modeles/tags disponibles sur le pod
-./07-download-models.sh                        # tag MODEL_TAGS de .env (defaut: turbo)
-./07-download-models.sh --tag hq               # un tag precis
-./07-download-models.sh --id lora-fl2v-8step   # un seul modele par id
-./07-download-models.sh --tag turbo,compact    # cumule plusieurs tags
+./07-sync-profiles.py list                     # profils disponibles
+./07-sync-profiles.py show minimax-h3          # contenu d'un profil, et ce qui est déjà là
+./07-sync-profiles.py sync krea2 --dry-run     # ce qui serait installé, sans rien faire
+./07-sync-profiles.py sync krea2,flux2-klein   # installe sans redémarrer le pod
+./07-sync-profiles.py                          # sync des profils COMFY_PROFILES de .env
 ```
 
-Tags fournis par défaut :
+Après une synchronisation à chaud, les nouveaux modèles apparaissent dans ComfyUI dès qu'on
+rafraîchit la page (touche R). Les nouveaux custom nodes nécessitent un redémarrage de ComfyUI
+(`runpodctl pod restart <pod-id>`). Pour qu'un profil soit installé à chaque nouveau pod,
+ajoute-le à `COMFY_PROFILES` dans `.env`, puis relance `09-create-or-update-template.py` si tu
+passes par le template.
 
-| Tag | Contenu | Usage |
-|---|---|---|
-| `turbo` (défaut) | FL2VA/Ref2VA `int8_convrot` non-pruned + LoRA turbo LightX2V (4 et 8 steps) | Rendu rapide (4-8 steps), fonctionne tel quel avec le workflow ComfyUI par défaut — c'est la même base que celui-ci attend. |
-| `hq` | Même base non-pruned, sans LoRA | Rendu qualité max, tous les steps, plus lent. |
-| `compact` | Variante `pruned` (un peu plus légère) + LoRA HyperFlow 8 steps | Empreinte disque minimale, mais nécessite un sampler custom (Euler + scheduler normal + sigmas manuels — voir la `description` de `lora-hyperflow-8step` dans `models.json`). À ne PAS mélanger avec les LoRA `turbo` (LightX2V), qui exigent la base non-pruned. |
-
-`int8_convrot` est privilégié à `fp8_scaled` sur les recommandations officielles Comfy-Org
-(meilleure qualité) dès lors qu'on est sur CUDA 13.0 — ce qui est le cas ici.
-
-Pour ajouter un modèle : éditer `scripts/models.json` (ou fournir ton propre fichier via
-`--config`), avec `id`, `tags`, `repo` (dépôt Hugging Face), `files` (chemins dans le dépôt) et
-optionnellement `local_subdir` (sous-dossier de destination, ex: `loras`).
+`int8_convrot` est privilégié à `fp8_scaled`, sur recommandation de Comfy-Org (meilleure
+qualité, CUDA 13.0 requis, ce qui est le cas ici).
 
 ⚠️ L'usage commercial des vidéos générées localement nécessite une licence commerciale
 MiniMax (voir la doc du modèle).
@@ -103,15 +165,13 @@ directement la valeur à mettre dans `IMAGE` de `deploy/.env`.
 
 Prérequis : [`runpodctl`](https://github.com/runpod/runpodctl) installé et une clé API RunPod.
 
-Chaque script existe en deux versions équivalentes dans `deploy/` : `NN-nom.sh` (bash + `jq`)
-et `NN-nom.py` (Python 3 stdlib uniquement — pas de dépendance à installer). Les deux lisent/
-écrivent le même `deploy/.env`, utilise celle qui te convient. Les exemples ci-dessous utilisent
-les `.sh` ; remplace juste l'extension pour la version Python (`./02-start-pod.py`, etc.).
+Les scripts de `deploy/` sont en Python 3, bibliothèque standard uniquement (aucune dépendance à
+installer). Ils lisent et écrivent tous `deploy/.env`.
 
-`deploy/.env` accepte aussi `HF_TOKEN` (Hugging Face), `CIVITAI_TOKEN` (CivitAI, câblé en
-prévision — aucun script actuel ne l'utilise encore) et `JUPYTER_TOKEN`. Ils ne sont jamais passés
-en clair au pod ni au template : `./10-create-or-update-secrets.sh` les pousse dans les secrets
-RunPod `hf_token`, `civitai_token` et `jupyter_token`. `02-start-pod.sh` et le template y font
+`deploy/.env` accepte aussi `HF_TOKEN` (Hugging Face), `CIVITAI_TOKEN` (CivitAI, pour les
+sources `civitai` des profils) et `JUPYTER_TOKEN`. Ils ne sont jamais passés
+en clair au pod ni au template : `./10-create-or-update-secrets.py` les pousse dans les secrets
+RunPod `hf_token`, `civitai_token` et `jupyter_token`. `02-start-pod.py` et le template y font
 ensuite référence (`{{ RUNPOD_SECRET_hf_token }}`, etc.), et RunPod substitue les valeurs au
 démarrage du pod. Dans le pod, ils sont persistés dans `/etc/environment` pour toute session SSH
 ultérieure. Un secret déjà présent est conservé ; `--force` le remplace par la valeur de `.env`
@@ -124,29 +184,29 @@ cp deploy/env.example deploy/.env
 $EDITOR deploy/.env        # renseigner RUNPOD_API_KEY, IMAGE, GPU_ID, DATA_CENTER_ID, HF_TOKEN...
 
 cd deploy
-./00-check-gpu-availability.sh                    # stock GPU pour le DATA_CENTER_ID de .env
-./00-check-gpu-availability.sh US-KS-2 "6000|5090" # datacenter + filtre par nom (regex)
+./00-check-gpu-availability.py                    # stock GPU pour le DATA_CENTER_ID de .env
+./00-check-gpu-availability.py US-KS-2 "6000|5090" # datacenter + filtre par nom (regex)
                                                     # le stock change en temps réel, à revérifier
                                                     # si "none" partout avant de créer le pod
 
-./10-create-or-update-secrets.sh  # une seule fois (ou --force après changement d'un token) :
+./10-create-or-update-secrets.py  # une seule fois (ou --force après changement d'un token) :
                                   # pousse HF_TOKEN/CIVITAI_TOKEN/JUPYTER_TOKEN en secrets RunPod
-./01-create-volume.sh      # une seule fois : crée le Network Volume (250 Go par défaut)
-./02-start-pod.sh          # crée le pod (image + GPU + volume monté)
-./07-download-models.sh    # une seule fois : peuple le volume (tag MODEL_TAGS de .env, defaut turbo)
-                            # --tag hq / --id <id> / --list : voir la section MiniMax H3 ci-dessus
+./01-create-volume.py      # une seule fois : crée le Network Volume (250 Go par défaut)
+./02-start-pod.py          # crée le pod (image + GPU + volume monté)
+./07-sync-profiles.py      # optionnel : le pod installe déjà COMFY_PROFILES au démarrage ;
+                            # list / show / sync <profil> : voir la section Profils ci-dessus
 
-./06-ssh.sh                # ouvrir un shell SSH sur le pod
-./08-status.sh             # état du pod
-./03-stop-pod.sh           # stopper (arrête la facturation GPU, garde le volume + le disque)
-./04-resume-pod.sh         # redémarrer le même pod (rapide, rien à re-télécharger)
-./05-terminate-pod.sh      # supprimer le pod définitivement (le volume survit)
+./06-ssh.py                # ouvrir un shell SSH sur le pod
+./08-status.py             # état du pod
+./03-stop-pod.py           # stopper (arrête la facturation GPU, garde le volume + le disque)
+./04-resume-pod.py         # redémarrer le même pod (rapide, rien à re-télécharger)
+./05-terminate-pod.py      # supprimer le pod définitivement (le volume survit)
 ```
 
-`02-start-pod.sh` affiche l'URL publique de ComfyUI et JupyterLab
+`02-start-pod.py` affiche l'URL publique de ComfyUI et JupyterLab
 (`https://<pod-id>-8188.proxy.runpod.net` et `-8888-`) dès qu'elles répondent vraiment (pas
 juste à la création du pod : `--wait` n'attend que SSH, pas le démarrage des services). Timeout
-par défaut 15 min (`URL_WAIT_TIMEOUT`, plus long si `MODELS_AUTO_DOWNLOAD=1`) ; les URLs restent
+par défaut 1 h (`URL_WAIT_TIMEOUT`), pour laisser le temps au premier téléchargement des profils sur un volume vide ; les URLs restent
 aussi visibles dans l'onglet **Connect** de la console RunPod à tout moment.
 
 **JupyterLab** (port 8888) tourne en plus de ComfyUI, protégé par un token (secret RunPod
@@ -162,22 +222,22 @@ un wildcard `*`.
 
 ### Template RunPod (optionnel)
 
-`./09-create-or-update-template.sh` crée un template RunPod (image + ports + env + disque),
+`./09-create-or-update-template.py` crée un template RunPod (image + ports + env + disque),
 réutilisable depuis le dashboard RunPod ou avec `runpodctl pod create --template-id <id>`, sans
 avoir à rappeler tous les flags à chaque fois. Idempotent : relancé, il retrouve le template par
 `TEMPLATE_NAME` (ou par `TEMPLATE_ID` s'il est déjà connu dans `.env`) et le met à jour au lieu
 d'en recréer un nouveau — pratique après un `git push` qui republie une nouvelle version de
-l'image. Nécessite `jq`.
+l'image.
 
 Les tokens n'apparaissent jamais en clair dans le template : `HF_TOKEN`, `CIVITAI_TOKEN` et
 `JUPYTER_TOKEN` y référencent les secrets RunPod `{{ RUNPOD_SECRET_hf_token }}`,
 `{{ RUNPOD_SECRET_civitai_token }}` et `{{ RUNPOD_SECRET_jupyter_token }}`, créés par
-`./10-create-or-update-secrets.sh` (voir plus haut) ou à la main dans le dashboard RunPod
+`./10-create-or-update-secrets.py` (voir plus haut) ou à la main dans le dashboard RunPod
 (**Settings → Secrets**). Les ports exposés y sont libellés
 « ComfyUI » (8188), « Jupyter Lab » (8888) et « SSH » (22).
 
 ```bash
-./09-create-or-update-template.sh
+./09-create-or-update-template.py
 ```
 
 Vérifie la chaîne exacte du GPU sur ton compte avec `runpodctl gpu list | grep -i 6000`

@@ -1,8 +1,6 @@
-"""Utilitaires partagés par les scripts deploy/*.py (équivalent Python de lib.sh).
+"""Utilitaires partagés par les scripts deploy/*.py.
 
-Contrairement aux versions bash (qui dépendent de `jq`), ces scripts n'ont besoin
-d'aucune dépendance externe : `json` (stdlib) remplace `jq`, `urllib` (stdlib)
-remplace `curl` pour le polling des URLs.
+Bibliothèque standard uniquement : aucune dépendance externe à installer.
 """
 import json
 import os

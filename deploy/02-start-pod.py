@@ -29,8 +29,8 @@ def build_env_payload():
     # Les tokens ne sont jamais passés en clair au pod : on référence des secrets RunPod (créés
     # depuis .env par 10-create-or-update-secrets.py), que RunPod substitue au démarrage du pod.
     return {
-        "MODELS_AUTO_DOWNLOAD": lib.get_env("MODELS_AUTO_DOWNLOAD", "0"),
-        "MODEL_TAGS": lib.get_env("MODEL_TAGS", "turbo"),
+        "COMFY_PROFILES": lib.get_env("COMFY_PROFILES"),
+        "COMFY_PROFILES_CONFIG": lib.get_env("COMFY_PROFILES_CONFIG"),
         "HF_TOKEN": "{{ RUNPOD_SECRET_hf_token }}",
         "CIVITAI_TOKEN": "{{ RUNPOD_SECRET_civitai_token }}",
         "JUPYTER_TOKEN": "{{ RUNPOD_SECRET_jupyter_token }}",
@@ -42,7 +42,9 @@ def main():
     volume_id = lib.require_env(
         "VOLUME_ID", "Lance 01-create-volume.py avant celui-ci, ou renseigne VOLUME_ID dans .env"
     )
-    url_wait_timeout = int(lib.get_env("URL_WAIT_TIMEOUT", "900"))  # 15 min par défaut
+    # 1 h : au premier démarrage sur un volume vide, le pod télécharge les profils (plusieurs
+    # dizaines de Go) avant de lancer ComfyUI. On s'arrête dès que les URLs répondent.
+    url_wait_timeout = int(lib.get_env("URL_WAIT_TIMEOUT", "3600"))
 
     pod_name = lib.require_env("POD_NAME")
     gpu_id = lib.require_env("GPU_ID")
@@ -81,9 +83,10 @@ def main():
         print(">> Aucun port HTTP exposé, rien à attendre.")
         return
 
-    if env_payload["MODELS_AUTO_DOWNLOAD"] == "1":
-        print(f">> MODELS_AUTO_DOWNLOAD=1 : le pod télécharge les modèles (tag: {env_payload['MODEL_TAGS']}) avant")
-        print("   de démarrer ComfyUI, ça peut prendre plusieurs minutes avant que l'URL réponde.")
+    if env_payload["COMFY_PROFILES"]:
+        print(f">> Le pod installe ce qui manque pour les profils {env_payload['COMFY_PROFILES']} avant de démarrer")
+        print("   ComfyUI : long au premier démarrage sur un volume vide (suivi : ./06-ssh.py, ou l'onglet")
+        print("   Logs de la console RunPod).")
 
     print(f">> Attente que les URLs répondent (timeout {url_wait_timeout}s) :")
     ready = set()
@@ -110,7 +113,7 @@ def main():
 
     print(">> Token JupyterLab : valeur du secret RunPod 'jupyter_token' (voir 10-create-or-update-secrets.py).")
 
-    print(">> Premier démarrage sans modèles sur le volume ? Lance ./07-download-models.py")
+    print(">> Ajouter un profil sans redémarrer : ./07-sync-profiles.py sync <profil> (liste : ./07-sync-profiles.py list)")
 
 
 if __name__ == "__main__":
