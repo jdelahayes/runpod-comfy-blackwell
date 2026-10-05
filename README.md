@@ -91,6 +91,10 @@ ignorées et peuvent servir de commentaires.)
 - **Dépendances Python** : le `requirements.txt` et le `install.py` des custom nodes, ainsi que
   les paquets `pip`, sont installés dans l'environnement Python du conteneur. Ils sont donc
   réinstallés automatiquement sur un nouveau pod, même si le volume est déjà peuplé.
+- **Version des custom nodes** : `ref` (optionnel) fixe une branche, un tag ou un commit. Sans
+  `ref`, la branche par défaut est clonée une fois puis jamais mise à jour. Si `ref` change, le
+  prochain `sync` bascule le clone existant dessus. Une branche n'est pas remise à jour tant
+  que `ref` reste le même.
 - **Custom nodes déjà dans l'image** (ex. KJNodes) : laissés tels quels.
 - Une clé inconnue (faute de frappe) fait échouer la commande avant toute action.
 

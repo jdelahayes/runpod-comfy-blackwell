@@ -230,6 +230,35 @@ def plan_file(item, where, dest_dir, paths):
     return dest, Step(f"{describe_source(item)} -> {dest}", lambda: fetch(item, dest, paths))
 
 
+def git(store, *args, **kwargs):
+    return subprocess.run(["git", "-C", str(store), *args], **kwargs)
+
+
+def at_ref(store, ref):
+    """Vrai si le dépôt local est déjà sur `ref` (vérifié sans accès réseau)."""
+    def rev(r):
+        out = git(store, "rev-parse", "--verify", "--quiet", f"{r}^{{commit}}",
+                  capture_output=True, text=True)
+        return out.stdout.strip() if out.returncode == 0 else None
+
+    head = rev("HEAD")
+    return head is not None and head == rev(ref)
+
+
+def checkout_ref(store, ref):
+    """Bascule un custom node déjà cloné sur `ref` (branche, tag ou commit)."""
+    shallow = git(store, "rev-parse", "--is-shallow-repository", capture_output=True, text=True)
+    fetch = ["fetch", "--tags", "origin", "+refs/heads/*:refs/remotes/origin/*"]
+    if shallow.stdout.strip() == "true":
+        fetch.insert(1, "--unshallow")
+    git(store, *fetch, check=True)
+    if git(store, "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{ref}",
+           capture_output=True).returncode == 0:
+        git(store, "checkout", "-B", ref, f"origin/{ref}", check=True)
+    else:
+        git(store, "checkout", ref, check=True)
+
+
 def plan_custom_node(item, where, paths):
     url = item.get("git")
     if not url:
@@ -243,18 +272,24 @@ def plan_custom_node(item, where, paths):
         print(f"   [{name}] déjà présent dans l'image ({link}), version du profil ignorée")
         return name, steps
 
+    ref = item.get("ref")
     if not store.exists():
-        ref = item.get("ref")
-
         def clone():
             if ref:
-                # ref peut être un commit : --branch ne l'accepte pas, d'où un clone complet.
-                subprocess.run(["git", "clone", url, str(store)], check=True)
-                subprocess.run(["git", "-C", str(store), "checkout", ref], check=True)
+                # Branche ou tag : clone superficiel. Un commit n'est pas accepté par --branch,
+                # d'où le repli sur un clone complet suivi d'un checkout.
+                shallow = subprocess.run(
+                    ["git", "clone", "--depth", "1", "--branch", ref, url, str(store)])
+                if shallow.returncode != 0:
+                    shutil.rmtree(store, ignore_errors=True)
+                    subprocess.run(["git", "clone", url, str(store)], check=True)
+                    subprocess.run(["git", "-C", str(store), "checkout", ref], check=True)
             else:
                 subprocess.run(["git", "clone", "--depth", "1", url, str(store)], check=True)
 
         steps.append(Step(f"git clone {url}{'@' + ref if ref else ''} -> {store}", clone))
+    elif ref and not at_ref(store, ref):
+        steps.append(Step(f"git checkout {ref} dans {store}", lambda: checkout_ref(store, ref)))
 
     if link != store and not link.is_symlink():
         steps.append(Step(f"lien {link} -> {store}", lambda: link.symlink_to(store)))

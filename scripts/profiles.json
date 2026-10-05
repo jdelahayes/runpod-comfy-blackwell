@@ -4,7 +4,9 @@
       "description": "custom-nodes common",
       "custom_nodes": [
         {"git": "https://github.com/kijai/ComfyUI-KJNodes.git"},
-        {"git": "https://github.com/rgthree/rgthree-comfy.git"}
+        {"git": "https://github.com/rgthree/rgthree-comfy.git"},
+        {"git": "https://github.com/pixaroma/ComfyUI-Pixaroma.git"},
+        {"git": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite"}
       ]
     },
 
@@ -21,12 +23,14 @@
         {"git": "https://github.com/PlagueKind/ComfyUI-PlagueKind-Nodes.git"},
         {"git": "https://github.com/xmarre/ComfyUI-Spectrum-MiniMax-H3.git"},
         {"git": "https://github.com/Luisacaotica/ComfyUI-MiniMaxH3Mod.git"},
-        {"git": "https://github.com/pixaroma/ComfyUI-Pixaroma.git"}
+        {"git": "https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder"},
+        {"git": "https://github.com/jdelahayes/ComfyUI-H3-Motion-Context.git", "ref": "audio-lock-planner"},
+        {"git": "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git"}
       ]
     },
 
     "minimax-h3-fl2va": {
-      "description": "MiniMax H3 FL2VA",
+      "description": "MiniMax H3 FL2VA (First-and-last-frame mode): Supports zero, one, or two input images. No image input = T2V; one image = first/last-frame-to-video; two images = first-and-last-frame-to-video.",
       "size": "123,6 Go",
       "extends": ["minimax-h3-common"],
       "models": [
@@ -35,7 +39,7 @@
     },
 
     "minimax-h3-ref2va": {
-      "description": "MiniMax H3 Ref2VA",
+      "description": "MiniMax H3 Ref2VA (Omni-reference mode): Supports multi-modal reference inputs — up to 9 images, 3 video clips (2–15s each), 3 audio clips, max 12 files total.",
       "size": "123,6 Go",
       "extends": ["minimax-h3-common"],
       "models": [
