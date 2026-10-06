@@ -6,7 +6,8 @@
         {"git": "https://github.com/kijai/ComfyUI-KJNodes.git"},
         {"git": "https://github.com/rgthree/rgthree-comfy.git"},
         {"git": "https://github.com/pixaroma/ComfyUI-Pixaroma.git"},
-        {"git": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite"}
+        {"git": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"},
+        {"git": "https://github.com/chanon/comfyui-obvpm.git"}
       ]
     },
 
@@ -25,7 +26,12 @@
         {"git": "https://github.com/Luisacaotica/ComfyUI-MiniMaxH3Mod.git"},
         {"git": "https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder"},
         {"git": "https://github.com/jdelahayes/ComfyUI-H3-Motion-Context.git", "ref": "audio-lock-planner"},
-        {"git": "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git"}
+        {"git": "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git"},
+        {"git": "https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git"},
+        {"git": "https://github.com/ethanfel/ComfyUI-H3-Prompt-IDE.git"},
+        {"git": "https://github.com/hyukudan/comfyui-video-resolution.git"},
+        {"git": "https://github.com/Zironic/H3-Optimizations.git"},
+        {"git": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"}
       ]
     },
 
