@@ -5,7 +5,7 @@
 # ils vivent sur un Network Volume RunPod monté au démarrage (voir ../deploy et scripts/).
 # C'est ce qui garde l'image légère et le pull rapide à la création du pod.
 ARG BASE_IMAGE=runpod-blackwell-base:latest
-ARG COMFYUI_VERSION=v0.37.2
+ARG COMFYUI_VERSION=v0.40.0
 
 FROM ${BASE_IMAGE}
 ARG COMFYUI_VERSION
