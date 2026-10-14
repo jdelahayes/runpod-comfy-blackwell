@@ -33,11 +33,6 @@ RUN git clone --branch "${COMFYUI_VERSION}" --depth 1 \
     && uv pip install --no-cache-dir -r "${COMFY_HOME}/requirements.txt" \
     && uv pip install --no-cache-dir -r "${COMFY_HOME}/manager_requirements.txt"
 
-# KJNodes : fournit le node "Patch Sage Attention KJ" (doc ComfyUI, ~2x sur MiniMax H3).
-RUN git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git \
-      "${COMFY_HOME}/custom_nodes/ComfyUI-KJNodes" \
-    && uv pip install --no-cache-dir -r "${COMFY_HOME}/custom_nodes/ComfyUI-KJNodes/requirements.txt" || true
-
 # JupyterLab : accès fichiers/terminal/notebooks sur le pod, en plus de ComfyUI.
 RUN uv pip install --no-cache-dir jupyterlab
 

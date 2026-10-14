@@ -15,7 +15,7 @@ démarre vite, à chaque fois. Voir `deploy/` pour tout le cycle de vie via `run
 runpod-blackwell-base (CUDA 13.0 / PyTorch 2.14 / SageAttention)
         │
         ▼
-runpod-comfy-blackwell (ComfyUI v0.40.0 + Manager intégré (--enable-manager) + KJNodes)
+runpod-comfy-blackwell (ComfyUI v0.40.0 + Manager intégré (--enable-manager) + panneau Profils)
         │
         ▼  (au démarrage du pod)
 Network Volume RunPod           →  ComfyUI/{models,input,output,user}
@@ -113,7 +113,7 @@ ignorées et peuvent servir de commentaires.)
   (7-Zip : format zip, chiffrement AES-256) avec le mot de passe `GDRIVE_ZIP_PASSWORD` de
   `deploy/.env` (secret RunPod `gdrive_zip_password`). Le chiffrement est détecté
   automatiquement ; un zip non chiffré s'extrait sans mot de passe.
-- **Custom nodes déjà dans l'image** (ex. KJNodes) : laissés tels quels.
+- **Custom nodes déjà dans l'image** (ex. comfyui-profiles) : laissés tels quels.
 - Une clé inconnue (faute de frappe) fait échouer la commande avant toute action.
 
 ### Commandes
@@ -292,6 +292,7 @@ avant le premier lancement (le nom peut varier légèrement selon les régions/o
 ## Notes Blackwell
 
 - `SageAttention` (image de base) accélère l'attention (~2x). Dans ComfyUI, patcher le
-  modèle avec le node **Patch Sage Attention KJ** (fourni par KJNodes, déjà installé).
+  modèle avec le node **Patch Sage Attention KJ** (fourni par KJNodes, installé par le profil
+  `comfyui-common`, dont héritent les profils minimax, krea2 et flux2).
 - Les poids `int8_convrot` et `nvfp4_awq` tirent parti des tensor cores FP4/INT8 natifs de
   Blackwell — c'est pourquoi ils sont préférés à `bf16`/`fp8_scaled` par défaut ici.
