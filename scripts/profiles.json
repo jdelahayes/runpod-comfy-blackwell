@@ -7,7 +7,7 @@
         {"git": "https://github.com/rgthree/rgthree-comfy.git"},
         {"git": "https://github.com/pixaroma/ComfyUI-Pixaroma.git"},
         {"git": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"},
-        {"git": "https://github.com/chanon/comfyui-obvpm.git"}
+        {"git": "https://github.com/AlexYez/comfyui-artius-browser.git"}
       ]
     },
 
@@ -31,7 +31,10 @@
         {"git": "https://github.com/ethanfel/ComfyUI-H3-Prompt-IDE.git"},
         {"git": "https://github.com/hyukudan/comfyui-video-resolution.git"},
         {"git": "https://github.com/Zironic/H3-Optimizations.git"},
-        {"git": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"}
+        {"git": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"},
+        {"gdrive": "https://drive.google.com/file/d/1GtM4kWXuPMbhObkJQ6VK5awYdcWFGqmU/view?usp=sharing", "name": "comfyui-obvpm-timeline"},
+        {"gdrive": "https://drive.google.com/file/d/11ktOA-JdZbH9weUoKPNplTvWSp32PX86/view?usp=sharing", "name": "comfyui-obvpm-pro-extensions"},
+        {"gdrive": "https://drive.google.com/file/d/1RTltX74gtFGxFjBXh-RUC5z60wB4TG5e/view?usp=sharing", "name": "comfyui-obvpm"}
       ]
     },
 
