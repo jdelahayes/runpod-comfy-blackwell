@@ -39,12 +39,14 @@ Les profils disponibles sont définis dans [`scripts/profiles.json`](scripts/pro
 
 La taille de chaque profil (`extends` compris, custom nodes non comptés) est indiquée dans
 `profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec
-`scripts/profile_sizes.py` (qui a besoin d'un clone de
-[comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) à côté de ce dépôt, ou de
-`COMFY_PROFILES_SCRIPT`) : il interroge Hugging Face / CivitAI sans rien télécharger et met à
-jour le fichier (`--dry-run` pour seulement afficher, `HF_TOKEN` pour les dépôts gated, repris de `deploy/.env` s'il n'est pas dans l'environnement). Seuls
-les fichiers sans taille sont interrogés ; `--force` réinterroge tout (ex. fichier mis à jour à
-la source).
+`scripts/profile_sizes.sh`, qui lance `profile_sizes.py` du dépôt
+[comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) (cloné à côté de celui-ci,
+ou dans `COMFYUI_PROFILES_DIR`) : il interroge Hugging Face / CivitAI sans rien télécharger et
+met à jour le fichier (`--dry-run` pour seulement afficher ; `HF_TOKEN` pour les dépôts gated,
+repris de `deploy/.env` s'il n'est pas dans l'environnement). Seuls les fichiers sans taille
+sont interrogés ; `--force` réinterroge tout (ex. fichier mis à jour à la source). Sur le pod,
+le bouton **Recalculer les tailles** du panneau Profils fait la même chose sur le fichier de
+profils du pod.
 
 ### Fichier de profils
 
