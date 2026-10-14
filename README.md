@@ -39,7 +39,9 @@ Les profils disponibles sont définis dans [`scripts/profiles.json`](scripts/pro
 
 La taille de chaque profil (`extends` compris, custom nodes non comptés) est indiquée dans
 `profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec
-`scripts/profile_sizes.py` : il interroge Hugging Face / CivitAI sans rien télécharger et met à
+`scripts/profile_sizes.py` (qui a besoin d'un clone de
+[comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) à côté de ce dépôt, ou de
+`COMFY_PROFILES_SCRIPT`) : il interroge Hugging Face / CivitAI sans rien télécharger et met à
 jour le fichier (`--dry-run` pour seulement afficher, `HF_TOKEN` pour les dépôts gated, repris de `deploy/.env` s'il n'est pas dans l'environnement). Seuls
 les fichiers sans taille sont interrogés ; `--force` réinterroge tout (ex. fichier mis à jour à
 la source).
@@ -123,6 +125,7 @@ ignorées et peuvent servir de commentaires.)
 ./07-sync-profiles.py show minimax-h3-all-pruned_int8  # contenu d'un profil, et ce qui est déjà là
 ./07-sync-profiles.py sync krea2 --dry-run     # ce qui serait installé, sans rien faire
 ./07-sync-profiles.py sync krea2,flux2-klein-9b # installe sans redémarrer le pod
+./07-sync-profiles.py uninstall krea2 --dry-run # ce qui serait supprimé (le partagé est gardé)
 ./07-sync-profiles.py                          # sync des profils COMFY_PROFILES de .env
 ```
 
@@ -131,6 +134,29 @@ rafraîchit la page (touche R). Les nouveaux custom nodes nécessitent un redém
 (`runpodctl pod restart <pod-id>`). Pour qu'un profil soit installé à chaque nouveau pod,
 ajoute-le à `COMFY_PROFILES` dans `.env`, puis relance `09-create-or-update-template.py` si tu
 passes par le template.
+
+### Panneau Profils dans ComfyUI
+
+Le gestionnaire de profils (`comfy_profiles.py`) et le panneau **Profils** de la barre
+latérale de ComfyUI vivent dans un dépôt séparé,
+[jdelahayes/comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) (voir son README).
+L'image le clone dans `custom_nodes/comfyui-profiles`, à la version fixée par
+`ARG COMFYUI_PROFILES_VERSION` du `Dockerfile`, et le lie en `/opt/scripts/comfy_profiles.py`.
+Pour une nouvelle version : tag dans `comfyui-profiles`, puis mise à jour de cet `ARG` (ce qui
+relance la CI).
+
+Le panneau fait la même chose que `07-sync-profiles.py`, sans passer par SSH : état de chaque
+profil (vert installé, orange partiel), installation, désinstallation, arrêt d'une action en
+cours, édition de `profiles.json` et redémarrage de ComfyUI (nécessaire après l'installation de
+nouveaux custom nodes). Sans `COMFY_PROFILES_CONFIG` sur le Network Volume, l'édition modifie
+la copie de l'image, perdue avec le pod.
+
+La désinstallation (`comfy_profiles.py uninstall PROFIL[,...] [--dry-run]`) supprime les
+modèles, workflows et custom nodes des profils, `extends` compris, **sauf** ce qui sert encore
+à un profil gardé : un profil de `COMFY_PROFILES`, ou un autre profil complètement installé.
+Exemple : désinstaller `krea2` alors que `krea2-raw` est installé garde le text encoder et le
+VAE de `krea2-common`. Les custom nodes de l'image et les paquets pip ne sont jamais
+supprimés. Un profil de `COMFY_PROFILES` désinstallé revient au prochain démarrage du pod.
 
 `int8_convrot` est privilégié à `fp8_scaled`, sur recommandation de Comfy-Org (meilleure
 qualité, CUDA 13.0 requis, ce qui est le cas ici).

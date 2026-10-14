@@ -29,7 +29,20 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-import comfy_profiles as cp
+try:  # sur le pod : /opt/scripts/comfy_profiles.py, à côté de ce script
+    import comfy_profiles as cp
+except ImportError:
+    # En local : comfy_profiles.py vit dans le dépôt du custom node comfyui-profiles, cloné à
+    # côté de celui-ci (ou indiqué par $COMFY_PROFILES_SCRIPT).
+    _script = Path(os.environ.get("COMFY_PROFILES_SCRIPT")
+                   or Path(__file__).resolve().parents[2] / "comfyui-profiles" / "comfy_profiles.py")
+    sys.path.insert(0, str(_script.parent))
+    try:
+        import comfy_profiles as cp
+    except ImportError:
+        sys.exit(f"!! comfy_profiles.py introuvable ({_script}) : clone "
+                 "https://github.com/jdelahayes/comfyui-profiles à côté de ce dépôt, ou indique "
+                 "son chemin dans COMFY_PROFILES_SCRIPT")
 
 FILE_SECTIONS = ("models", "workflows")
 DEPLOY_ENV = Path(__file__).resolve().parent.parent / "deploy" / ".env"

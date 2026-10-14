@@ -6,9 +6,12 @@
 # C'est ce qui garde l'image légère et le pull rapide à la création du pod.
 ARG BASE_IMAGE=runpod-blackwell-base:latest
 ARG COMFYUI_VERSION=v0.40.0
+# Panneau « Profils » et gestionnaire de profils (comfy_profiles.py) : dépôt séparé, version fixée.
+ARG COMFYUI_PROFILES_VERSION=v0.1.0
 
 FROM ${BASE_IMAGE}
 ARG COMFYUI_VERSION
+ARG COMFYUI_PROFILES_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -43,9 +46,16 @@ RUN uv pip install --no-cache-dir pyzipper
 
 RUN find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} +
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 # Profils d'utilisation (modèles, custom nodes, workflows...) : voir README.md, section Profils.
-COPY scripts/comfy_profiles.py /opt/scripts/comfy_profiles.py
+# Le gestionnaire vient du custom node comfyui-profiles (panneau Profils dans l'UI) ; le lien
+# dans /opt/scripts garde le chemin utilisé par entrypoint.sh, 07-sync-profiles.py et
+# profile_sizes.py (qui l'importe).
+RUN git clone --branch "${COMFYUI_PROFILES_VERSION}" --depth 1 \
+      https://github.com/jdelahayes/comfyui-profiles.git "${COMFY_HOME}/custom_nodes/comfyui-profiles" \
+    && mkdir -p /opt/scripts \
+    && ln -s "${COMFY_HOME}/custom_nodes/comfyui-profiles/comfy_profiles.py" /opt/scripts/comfy_profiles.py
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/profile_sizes.py /opt/scripts/profile_sizes.py
 COPY scripts/profiles.json /opt/scripts/profiles.json
 RUN chmod +x /usr/local/bin/entrypoint.sh /opt/scripts/comfy_profiles.py /opt/scripts/profile_sizes.py
