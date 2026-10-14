@@ -67,7 +67,9 @@ Format :
       ],
       "custom_nodes": [
         {"git": "https://github.com/auteur/ComfyUI-Truc.git"},
-        {"git": "https://github.com/auteur/ComfyUI-Machin.git", "ref": "v1.2.0", "name": "Machin"}
+        {"git": "https://github.com/auteur/ComfyUI-Machin.git", "ref": "v1.2.0", "name": "Machin"},
+        // zip public sur Google Drive (lien de partage ou id du fichier)
+        {"gdrive": "https://drive.google.com/file/d/1AbC.../view?usp=sharing", "name": "ComfyUI-Bidule"}
       ],
       "workflows": [
         {"url": "https://exemple.com/workflow.json", "name": "mon_workflow.json"}
@@ -95,6 +97,11 @@ ignorées et peuvent servir de commentaires.)
   `ref`, la branche par défaut est clonée une fois puis jamais mise à jour. Si `ref` change, le
   prochain `sync` bascule le clone existant dessus. Une branche n'est pas remise à jour tant
   que `ref` reste le même.
+- **Custom nodes en zip sur Google Drive** : `gdrive` (lien de partage ou id du fichier, partagé
+  en « Tous les utilisateurs disposant du lien ») et `name` (nom du dossier, obligatoire). Le
+  zip est extrait dans `<volume>/custom_nodes/<name>` ; s'il contient un unique dossier racine,
+  c'est son contenu qui est pris. Il n'est retéléchargé que si `gdrive` change : pour mettre à
+  jour le node, publie le nouveau zip comme un nouveau fichier Drive (ou supprime le dossier).
 - **Custom nodes déjà dans l'image** (ex. KJNodes) : laissés tels quels.
 - Une clé inconnue (faute de frappe) fait échouer la commande avant toute action.
 

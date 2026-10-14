@@ -17,7 +17,8 @@ Profils synchronisés par défaut : $COMFY_PROFILES (séparés par des virgules)
 Destinations :
   modèles      -> $MODELS_VOLUME_DIR/<type>/  (ou $COMFY_HOME/models/<type>/ sans volume)
   custom nodes -> <volume>/custom_nodes/<nom>, lié dans $COMFY_HOME/custom_nodes/
-                  (ou directement dans $COMFY_HOME/custom_nodes/ sans volume)
+                  (ou directement dans $COMFY_HOME/custom_nodes/ sans volume) ; clonés depuis
+                  git, ou extraits d'un zip public sur Google Drive
   workflows    -> $COMFY_HOME/user/default/workflows/
 Les dépendances Python (custom nodes, pip) vivent dans le venv du conteneur : elles sont
 réinstallées automatiquement sur un nouveau pod, même si le volume est déjà peuplé.
@@ -26,10 +27,12 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import urllib.request
+import zipfile
 from pathlib import Path
 
 DEFAULT_CONFIG = Path("/opt/scripts/profiles.json")
@@ -259,10 +262,58 @@ def checkout_ref(store, ref):
         git(store, "checkout", ref, check=True)
 
 
+# Fichier écrit dans un custom node extrait d'un zip : id Drive dont il provient.
+GDRIVE_MARKER = ".comfy-profiles-gdrive"
+
+
+def gdrive_id(value, where):
+    """Id d'un fichier Drive, à partir de l'id lui-même ou d'un lien de partage."""
+    match = re.search(r"/d/([\w-]+)", value) or re.search(r"[?&]id=([\w-]+)", value)
+    if match:
+        return match.group(1)
+    if re.fullmatch(r"[\w-]{20,}", value):
+        return value
+    raise ConfigError(f"{where} : 'gdrive' doit être un lien de partage Google Drive ou un id de fichier")
+
+
+def install_gdrive_zip(file_id, store, paths):
+    """Télécharge un zip public sur Drive et l'extrait dans `store` (remplacé s'il existe)."""
+    paths.staging.mkdir(parents=True, exist_ok=True)
+    work = paths.staging / f"gdrive-{file_id}"
+    try:
+        archive = work / "node.zip"
+        work.mkdir()
+        # confirm=t : saute la page d'avertissement « fichier trop gros pour l'antivirus ».
+        fetch_url(f"https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t",
+                  archive)
+        if not zipfile.is_zipfile(archive):
+            raise RuntimeError(f"le fichier Drive {file_id} n'est pas un zip (non public, ou quota "
+                               "de téléchargement Drive dépassé ?)")
+        extracted = work / "extracted"
+        with zipfile.ZipFile(archive) as zf:
+            zf.extractall(extracted)  # neutralise les chemins absolus et les `..`
+        # Zip d'un dossier : on prend son contenu ; sinon les fichiers sont à la racine du zip.
+        entries = [e for e in extracted.iterdir() if e.name != "__MACOSX"]
+        root = entries[0] if len(entries) == 1 and entries[0].is_dir() else extracted
+        (root / GDRIVE_MARKER).write_text(file_id)
+        shutil.rmtree(store, ignore_errors=True)
+        store.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(root), str(store))
+    finally:
+        shutil.rmtree(paths.staging, ignore_errors=True)
+
+
 def plan_custom_node(item, where, paths):
     url = item.get("git")
-    if not url:
-        raise ConfigError(f"{where} : 'git' (URL du dépôt) requis")
+    drive = item.get("gdrive")
+    if bool(url) == bool(drive):
+        raise ConfigError(f"{where} : une (et une seule) source attendue parmi git, gdrive")
+    if drive:
+        if not item.get("name"):
+            raise ConfigError(f"{where} : 'name' (nom du dossier du custom node) requis avec 'gdrive'")
+        if item.get("ref"):
+            raise ConfigError(f"{where} : 'ref' ne s'applique qu'à une source 'git'")
+        file_id = gdrive_id(drive, where)
     name = item.get("name") or url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1]
     store = paths.custom_nodes_store / name
     link = paths.custom_nodes / name
@@ -273,7 +324,17 @@ def plan_custom_node(item, where, paths):
         return name, steps
 
     ref = item.get("ref")
-    if not store.exists():
+    if drive:
+        installed = store / GDRIVE_MARKER
+        if not store.exists():
+            steps.append(Step(f"gdrive:{file_id} (zip) -> {store}",
+                              lambda: install_gdrive_zip(file_id, store, paths)))
+        elif not installed.is_file():
+            print(f"   [{name}] {store} existe mais ne vient pas d'un zip Drive, laissé tel quel")
+        elif installed.read_text().strip() != file_id:
+            steps.append(Step(f"gdrive:{file_id} (zip, nouveau fichier) remplace {store}",
+                              lambda: install_gdrive_zip(file_id, store, paths)))
+    elif not store.exists():
         def clone():
             if ref:
                 # Branche ou tag : clone superficiel. Un commit n'est pas accepté par --branch,
