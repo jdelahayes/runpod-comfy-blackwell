@@ -7,7 +7,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 IMAGE_NAME="${IMAGE_NAME:-runpod-comfy-blackwell}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 BASE_IMAGE="${BASE_IMAGE:-runpod-blackwell-base:latest}"
-COMFYUI_VERSION="${COMFYUI_VERSION:-v0.37.2}"
+# Version de ComfyUI : ARG COMFYUI_VERSION du Dockerfile, sauf si COMFYUI_VERSION est fourni.
+COMFYUI_VERSION="${COMFYUI_VERSION:-$(sed -n 's/^ARG COMFYUI_VERSION=//p' Dockerfile)}"
 REGISTRY="${REGISTRY:-}"
 
 FULL_TAG="${IMAGE_NAME}:${IMAGE_TAG}"

@@ -1,6 +1,6 @@
 # runpod-comfy-blackwell
 
-ComfyUI (dernière stable, v0.37.2) sur [runpod-blackwell-base](../runpod-blackwell-base),
+ComfyUI (dernière stable, v0.40.0) sur [runpod-blackwell-base](../runpod-blackwell-base),
 pour RunPod avec une RTX PRO 6000 (Blackwell, 96 Go VRAM). Les modèles et custom nodes de chaque
 usage (MiniMax H3, Krea 2, FLUX.2 [klein]...) sont décrits par des **profils** installés au
 démarrage du pod (voir [Profils d'utilisation](#profils-dutilisation)).
@@ -15,7 +15,7 @@ démarre vite, à chaque fois. Voir `deploy/` pour tout le cycle de vie via `run
 runpod-blackwell-base (CUDA 13.0 / PyTorch 2.14 / SageAttention)
         │
         ▼
-runpod-comfy-blackwell (ComfyUI v0.37.2 + Manager intégré (--enable-manager) + KJNodes)
+runpod-comfy-blackwell (ComfyUI v0.40.0 + Manager intégré (--enable-manager) + KJNodes)
         │
         ▼  (au démarrage du pod)
 Network Volume RunPod           →  ComfyUI/{models,input,output,user}
