@@ -79,14 +79,18 @@ def runpodctl_json(*args):
 
 def save_env_var(key, value):
     """Ajoute ou met à jour KEY=value dans deploy/.env, en conservant le reste du fichier."""
-    lines = ENV_FILE.read_text().splitlines()
+    lines = ENV_FILE.read_text(encoding="utf-8").splitlines()
     for i, line in enumerate(lines):
         if line.startswith(f"{key}="):
             lines[i] = f"{key}={value}"
             break
     else:
         lines.append(f"{key}={value}")
-    ENV_FILE.write_text("\n".join(lines) + "\n")
+    # r+ puis truncate plutôt que write_text (mode w) : sous Windows, ouvrir en mode w un fichier
+    # caché existant est refusé (Access denied), et un partage Samba marque .env comme caché.
+    with ENV_FILE.open("r+", encoding="utf-8", newline="") as f:
+        f.write("\n".join(lines) + "\n")
+        f.truncate()
 
 
 def runpod_graphql(query, variables=None):
