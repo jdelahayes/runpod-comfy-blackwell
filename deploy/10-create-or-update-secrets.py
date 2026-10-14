@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Crée les secrets RunPod référencés par le template et le pod ({{ RUNPOD_SECRET_<nom> }}) à partir
 des tokens de deploy/.env : HF_TOKEN -> hf_token, CIVITAI_TOKEN -> civitai_token,
-JUPYTER_TOKEN -> jupyter_token. Un secret déjà présent est conservé, sauf avec --force qui le
+JUPYTER_TOKEN -> jupyter_token, GDRIVE_ZIP_PASSWORD -> gdrive_zip_password. Un secret déjà présent est conservé, sauf avec --force qui le
 remplace par la valeur de .env (l'API ne permet ni de relire ni de modifier la valeur d'un
 secret : --force le supprime puis le recrée, en gardant sa description).
 """
@@ -13,6 +13,7 @@ SECRETS = {
     "HF_TOKEN": "hf_token",
     "CIVITAI_TOKEN": "civitai_token",
     "JUPYTER_TOKEN": "jupyter_token",
+    "GDRIVE_ZIP_PASSWORD": "gdrive_zip_password",
 }
 
 

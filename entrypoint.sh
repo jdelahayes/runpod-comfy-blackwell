@@ -101,7 +101,7 @@ setup_jupyter() {
 # l'image, seulement de ce qui est écrit dans /etc/environment, lu par pam_env). Utile pour
 # lancer /opt/scripts/comfy_profiles.py à la main ou via deploy/07-sync-profiles.sh.
 persist_env() {
-  for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN COMFY_HOME MODELS_VOLUME_DIR COMFY_PROFILES COMFY_PROFILES_CONFIG; do
+  for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN GDRIVE_ZIP_PASSWORD COMFY_HOME MODELS_VOLUME_DIR COMFY_PROFILES COMFY_PROFILES_CONFIG; do
     if [[ -n "${!var:-}" ]]; then
       sed -i "/^${var}=/d" /etc/environment
       echo "${var}=${!var}" >> /etc/environment

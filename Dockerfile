@@ -38,6 +38,9 @@ RUN git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git \
 # JupyterLab : accès fichiers/terminal/notebooks sur le pod, en plus de ComfyUI.
 RUN uv pip install --no-cache-dir jupyterlab
 
+# pyzipper : extraction des zips chiffrés en AES (custom nodes "gdrive" des profils).
+RUN uv pip install --no-cache-dir pyzipper
+
 RUN find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} +
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh

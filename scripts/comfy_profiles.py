@@ -18,7 +18,8 @@ Destinations :
   modèles      -> $MODELS_VOLUME_DIR/<type>/  (ou $COMFY_HOME/models/<type>/ sans volume)
   custom nodes -> <volume>/custom_nodes/<nom>, lié dans $COMFY_HOME/custom_nodes/
                   (ou directement dans $COMFY_HOME/custom_nodes/ sans volume) ; clonés depuis
-                  git, ou extraits d'un zip public sur Google Drive
+                  git, ou extraits d'un zip public sur Google Drive (chiffré ou non : mot de
+                  passe dans $GDRIVE_ZIP_PASSWORD)
   workflows    -> $COMFY_HOME/user/default/workflows/
 Les dépendances Python (custom nodes, pip) vivent dans le venv du conteneur : elles sont
 réinstallées automatiquement sur un nouveau pod, même si le volume est déjà peuplé.
@@ -300,6 +301,26 @@ def gdrive_id(value, where):
     raise ConfigError(f"{where} : 'gdrive' doit être un lien de partage Google Drive ou un id de fichier")
 
 
+def extract_encrypted_zip(archive, dest, file_id):
+    """Zip chiffré (AES, ex. 7-Zip, ou ZipCrypto) : zipfile ne sait pas lire l'AES, pyzipper si."""
+    password = os.environ.get("GDRIVE_ZIP_PASSWORD")
+    if not password:
+        raise RuntimeError(f"le zip Drive {file_id} est chiffré : mot de passe attendu dans "
+                           "GDRIVE_ZIP_PASSWORD (secret RunPod gdrive_zip_password)")
+    try:
+        import pyzipper
+    except ImportError:  # image antérieure à l'ajout de pyzipper dans le Dockerfile
+        pip_install(["pyzipper"])
+        import pyzipper
+    with pyzipper.AESZipFile(archive) as zf:
+        zf.setpassword(password.encode())
+        try:
+            zf.extractall(dest)  # même protection des chemins que zipfile
+        except RuntimeError as e:
+            raise RuntimeError(f"zip Drive {file_id} : déchiffrement impossible "
+                               f"(GDRIVE_ZIP_PASSWORD erroné ?) : {e}") from None
+
+
 def install_gdrive_zip(file_id, store, paths):
     """Télécharge un zip public sur Drive et l'extrait dans `store` (remplacé s'il existe)."""
     paths.staging.mkdir(parents=True, exist_ok=True)
@@ -315,7 +336,11 @@ def install_gdrive_zip(file_id, store, paths):
                                "de téléchargement Drive dépassé ?)")
         extracted = work / "extracted"
         with zipfile.ZipFile(archive) as zf:
-            zf.extractall(extracted)  # neutralise les chemins absolus et les `..`
+            encrypted = any(info.flag_bits & 0x1 for info in zf.infolist())
+            if not encrypted:
+                zf.extractall(extracted)  # neutralise les chemins absolus et les `..`
+        if encrypted:
+            extract_encrypted_zip(archive, extracted, file_id)
         # Zip d'un dossier : on prend son contenu ; sinon les fichiers sont à la racine du zip.
         entries = [e for e in extracted.iterdir() if e.name != "__MACOSX"]
         root = entries[0] if len(entries) == 1 and entries[0].is_dir() else extracted

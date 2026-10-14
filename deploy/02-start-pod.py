@@ -34,6 +34,7 @@ def build_env_payload():
         "HF_TOKEN": "{{ RUNPOD_SECRET_hf_token }}",
         "CIVITAI_TOKEN": "{{ RUNPOD_SECRET_civitai_token }}",
         "JUPYTER_TOKEN": "{{ RUNPOD_SECRET_jupyter_token }}",
+        "GDRIVE_ZIP_PASSWORD": "{{ RUNPOD_SECRET_gdrive_zip_password }}",
     }
 
 

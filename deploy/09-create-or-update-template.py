@@ -14,13 +14,14 @@ PORT_LABELS = "8188=ComfyUI,8888=Jupyter Lab,22=SSH"
 def build_env_payload():
     # Les tokens ne sont jamais écrits en clair dans le template : on référence des secrets
     # RunPod (Settings -> Secrets, à créer une fois sous les noms hf_token, civitai_token,
-    # jupyter_token), que RunPod substitue au démarrage du pod.
+    # jupyter_token, gdrive_zip_password), que RunPod substitue au démarrage du pod.
     return {
         "COMFY_PROFILES": lib.get_env("COMFY_PROFILES"),
         "COMFY_PROFILES_CONFIG": lib.get_env("COMFY_PROFILES_CONFIG"),
         "HF_TOKEN": "{{ RUNPOD_SECRET_hf_token }}",
         "CIVITAI_TOKEN": "{{ RUNPOD_SECRET_civitai_token }}",
         "JUPYTER_TOKEN": "{{ RUNPOD_SECRET_jupyter_token }}",
+        "GDRIVE_ZIP_PASSWORD": "{{ RUNPOD_SECRET_gdrive_zip_password }}",
     }
 
 

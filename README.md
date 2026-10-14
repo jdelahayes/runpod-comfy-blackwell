@@ -107,6 +107,10 @@ ignorées et peuvent servir de commentaires.)
   zip est extrait dans `<volume>/custom_nodes/<name>` ; s'il contient un unique dossier racine,
   c'est son contenu qui est pris. Il n'est retéléchargé que si `gdrive` change : pour mettre à
   jour le node, publie le nouveau zip comme un nouveau fichier Drive (ou supprime le dossier).
+  Le dépôt étant public, le lien l'est aussi : pour protéger le contenu, chiffre le zip
+  (7-Zip : format zip, chiffrement AES-256) avec le mot de passe `GDRIVE_ZIP_PASSWORD` de
+  `deploy/.env` (secret RunPod `gdrive_zip_password`). Le chiffrement est détecté
+  automatiquement ; un zip non chiffré s'extrait sans mot de passe.
 - **Custom nodes déjà dans l'image** (ex. KJNodes) : laissés tels quels.
 - Une clé inconnue (faute de frappe) fait échouer la commande avant toute action.
 
@@ -183,9 +187,10 @@ Les scripts de `deploy/` sont en Python 3, bibliothèque standard uniquement (au
 installer). Ils lisent et écrivent tous `deploy/.env`.
 
 `deploy/.env` accepte aussi `HF_TOKEN` (Hugging Face), `CIVITAI_TOKEN` (CivitAI, pour les
-sources `civitai` des profils) et `JUPYTER_TOKEN`. Ils ne sont jamais passés
+sources `civitai` des profils), `JUPYTER_TOKEN` et `GDRIVE_ZIP_PASSWORD` (zips chiffrés des
+custom nodes `gdrive`). Ils ne sont jamais passés
 en clair au pod ni au template : `./10-create-or-update-secrets.py` les pousse dans les secrets
-RunPod `hf_token`, `civitai_token` et `jupyter_token`. `02-start-pod.py` et le template y font
+RunPod `hf_token`, `civitai_token`, `jupyter_token` et `gdrive_zip_password`. `02-start-pod.py` et le template y font
 ensuite référence (`{{ RUNPOD_SECRET_hf_token }}`, etc.), et RunPod substitue les valeurs au
 démarrage du pod. Dans le pod, ils sont persistés dans `/etc/environment` pour toute session SSH
 ultérieure. Un secret déjà présent est conservé ; `--force` le remplace par la valeur de `.env`
@@ -204,7 +209,7 @@ cd deploy
                                                     # si "none" partout avant de créer le pod
 
 ./10-create-or-update-secrets.py  # une seule fois (ou --force après changement d'un token) :
-                                  # pousse HF_TOKEN/CIVITAI_TOKEN/JUPYTER_TOKEN en secrets RunPod
+                                  # pousse les tokens et GDRIVE_ZIP_PASSWORD de .env en secrets RunPod
 ./01-create-volume.py      # une seule fois : crée le Network Volume (250 Go par défaut)
 ./02-start-pod.py          # crée le pod (image + GPU + volume monté)
 ./07-sync-profiles.py      # optionnel : le pod installe déjà COMFY_PROFILES au démarrage ;
@@ -243,9 +248,10 @@ avoir à rappeler tous les flags à chaque fois. Idempotent : relancé, il retro
 d'en recréer un nouveau — pratique après un `git push` qui republie une nouvelle version de
 l'image.
 
-Les tokens n'apparaissent jamais en clair dans le template : `HF_TOKEN`, `CIVITAI_TOKEN` et
-`JUPYTER_TOKEN` y référencent les secrets RunPod `{{ RUNPOD_SECRET_hf_token }}`,
-`{{ RUNPOD_SECRET_civitai_token }}` et `{{ RUNPOD_SECRET_jupyter_token }}`, créés par
+Les tokens n'apparaissent jamais en clair dans le template : `HF_TOKEN`, `CIVITAI_TOKEN`,
+`JUPYTER_TOKEN` et `GDRIVE_ZIP_PASSWORD` y référencent les secrets RunPod
+`{{ RUNPOD_SECRET_hf_token }}`, `{{ RUNPOD_SECRET_civitai_token }}`,
+`{{ RUNPOD_SECRET_jupyter_token }}` et `{{ RUNPOD_SECRET_gdrive_zip_password }}`, créés par
 `./10-create-or-update-secrets.py` (voir plus haut) ou à la main dans le dashboard RunPod
 (**Settings → Secrets**). Les ports exposés y sont libellés
 « ComfyUI » (8188), « Jupyter Lab » (8888) et « SSH » (22).
