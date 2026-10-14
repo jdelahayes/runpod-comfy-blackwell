@@ -3,7 +3,7 @@
 
 Interroge la taille réelle de chaque fichier (modèles, workflows) à la source, sans rien
 télécharger : API Hugging Face (paths-info), API CivitAI (model-versions), ou en-tête
-Content-Length pour une URL directe. Seuls les fichiers sans "size" sont interrogés, sauf avec
+Content-Length pour une URL directe ou un fichier d'un dépôt GitHub. Seuls les fichiers sans "size" sont interrogés, sauf avec
 --force qui les réinterroge tous. Écrit ensuite dans la config :
   - "size" (octets) sur chaque fichier ;
   - "size" (lisible, ex: "89,4 Go") sur chaque profil : total de ses fichiers, `extends`
@@ -117,7 +117,10 @@ def fetch_sizes(items):
             hf_groups.setdefault((item["hf"], item.get("revision")), []).append((where, item))
             continue
         try:
-            item["size"] = civitai_size(item["civitai"]) if source == "civitai" else url_size(item["url"])
+            if source == "civitai":
+                item["size"] = civitai_size(item["civitai"])
+            else:
+                item["size"] = url_size(cp.github_file_url(item) if source == "github" else item["url"])
         except Exception as e:
             failures.append(f"{where} {cp.describe_source(item)} : {error_text(e)}")
 

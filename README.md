@@ -65,6 +65,7 @@ Format :
         {"type": "loras", "hf": "org/depot", "file": "chemin/dans/le/depot.safetensors"},
         {"type": "loras", "hf": "org/depot", "file": "x.safetensors", "revision": "main", "name": "renomme.safetensors"},
         {"type": "checkpoints", "civitai": 123456, "name": "mon_modele.safetensors"},   // id de VERSION du modèle
+        {"type": "vae", "github": "https://github.com/madebyollin/taehv.git", "file": "safetensors/taeh3.safetensors"},  // un seul fichier du dépôt
         {"type": "upscale_models", "url": "https://exemple.com/4x.pth", "name": "4x.pth"}
       ],
       "custom_nodes": [
@@ -86,9 +87,11 @@ Format :
 ignorées et peuvent servir de commentaires.)
 
 - **Sources** (modèles et workflows) : une seule par élément parmi `hf` (+ `file`, et
-  optionnellement `revision`), `civitai` (id de version, utilise `CIVITAI_TOKEN`) ou `url`.
-  `name` fixe le nom du fichier local. Il est obligatoire pour `civitai` et `url`, et vaut par
-  défaut le nom de `file` pour `hf`.
+  optionnellement `revision`), `github` (dépôt public `owner/depot` ou son URL, + `file`, et
+  optionnellement `revision` : branche, tag ou commit), `civitai` (id de version, utilise
+  `CIVITAI_TOKEN`) ou `url`. Avec `github`, seul le fichier est téléchargé, sans cloner le
+  dépôt (Git LFS compris). `name` fixe le nom du fichier local. Il est obligatoire pour
+  `civitai` et `url`, et vaut par défaut le nom de `file` pour `hf` et `github`.
 - **Destinations** : modèles dans `<volume>/models/<type>/`, custom nodes clonés dans
   `<volume>/custom_nodes/` et liés dans `ComfyUI/custom_nodes/`, workflows dans
   `ComfyUI/user/default/workflows/`. Sans volume, tout va directement dans `ComfyUI/`.

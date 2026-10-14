@@ -31,6 +31,7 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -39,7 +40,7 @@ DEFAULT_CONFIG = Path("/opt/scripts/profiles.json")
 SECTIONS = ("custom_nodes", "pip", "models", "workflows")
 # "size" : total calculé par profile_sizes.py (informatif, ignoré par sync).
 PROFILE_KEYS = {"description", "size", "extends", *SECTIONS}
-SOURCES = ("hf", "url", "civitai")
+SOURCES = ("hf", "github", "url", "civitai")
 # Cloudflare (devant civitai.com notamment) rejette le User-Agent par défaut de urllib.
 USER_AGENT = "runpod-comfy-profiles"
 # Dans le venv, donc propre à ce conteneur : un nouveau pod réinstalle les dépendances.
@@ -138,15 +139,33 @@ def source_of(item, where):
     found = [k for k in SOURCES if k in item]
     if len(found) != 1:
         raise ConfigError(f"{where} : une (et une seule) source attendue parmi {', '.join(SOURCES)}")
-    if found[0] == "hf" and not item.get("file"):
-        raise ConfigError(f"{where} : 'file' (chemin dans le dépôt) requis avec 'hf'")
+    if found[0] in ("hf", "github") and not item.get("file"):
+        raise ConfigError(f"{where} : 'file' (chemin dans le dépôt) requis avec '{found[0]}'")
+    if found[0] == "github":
+        github_repo(item["github"], where)
     return found[0]
+
+
+def github_repo(value, where=""):
+    """'owner/repo' à partir de 'owner/repo' ou d'une URL de dépôt GitHub."""
+    repo = re.sub(r"^(https?://)?github\.com/", "", value.strip()).rstrip("/").removesuffix(".git")
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
+        raise ConfigError(f"{where} : 'github' doit être 'owner/depot' ou l'URL d'un dépôt GitHub")
+    return repo
+
+
+def github_file_url(item):
+    """URL d'un seul fichier du dépôt (sans le cloner). /raw/ sur github.com redirige vers
+    raw.githubusercontent.com, ou vers media.githubusercontent.com pour un fichier Git LFS."""
+    rev = item.get("revision") or "HEAD"
+    path = urllib.parse.quote(item["file"].lstrip("/"))
+    return f"https://github.com/{github_repo(item['github'])}/raw/{rev}/{path}"
 
 
 def target_name(item, where):
     if item.get("name"):
         return item["name"]
-    if "hf" in item:
+    if "hf" in item or "github" in item:
         return Path(item["file"]).name
     raise ConfigError(f"{where} : 'name' (nom du fichier local) requis pour une source url/civitai")
 
@@ -155,6 +174,9 @@ def describe_source(item):
     if "hf" in item:
         rev = f"@{item['revision']}" if item.get("revision") else ""
         return f"hf:{item['hf']}{rev}/{item['file']}"
+    if "github" in item:
+        rev = f"@{item['revision']}" if item.get("revision") else ""
+        return f"github:{github_repo(item['github'])}{rev}/{item['file']}"
     if "civitai" in item:
         return f"civitai:{item['civitai']}"
     return item["url"]
@@ -193,6 +215,8 @@ def fetch(item, dest, paths):
         # refuse un en-tête Authorization en plus de sa propre signature.
         token = os.environ.get("CIVITAI_TOKEN")
         fetch_url(f"{url}?token={token}" if token else url, dest)
+    elif "github" in item:
+        fetch_url(github_file_url(item), dest)
     else:
         fetch_url(item["url"], dest)
 
