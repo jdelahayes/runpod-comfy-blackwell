@@ -3,18 +3,20 @@
 
 Interroge la taille réelle de chaque fichier (modèles, workflows) à la source, sans rien
 télécharger : API Hugging Face (paths-info), API CivitAI (model-versions), ou en-tête
-Content-Length pour une URL directe. Écrit ensuite dans la config :
+Content-Length pour une URL directe. Seuls les fichiers sans "size" sont interrogés, sauf avec
+--force qui les réinterroge tous. Écrit ensuite dans la config :
   - "size" (octets) sur chaque fichier ;
   - "size" (lisible, ex: "89,4 Go") sur chaque profil : total de ses fichiers, `extends`
     compris, chaque fichier compté une fois. Les custom nodes et paquets pip ne sont pas comptés
     (un profil qui n'a qu'eux n'a pas de taille).
 
 Usage:
-  profile_sizes.py [--config FICHIER] [--dry-run]
+  profile_sizes.py [--config FICHIER] [--force] [--dry-run]
 
 Fichier de config : --config, sinon $COMFY_PROFILES_CONFIG, sinon /opt/scripts/profiles.json,
 sinon (hors du pod) le profiles.json à côté de ce script. Token Hugging Face (dépôts gated) :
-$HF_TOKEN, sinon celui de `hf auth login`. Token CivitAI : $CIVITAI_TOKEN.
+$HF_TOKEN, sinon celui de deploy/.env, sinon celui de `hf auth login`. Token CivitAI :
+$CIVITAI_TOKEN, sinon celui de deploy/.env.
 La mise en forme du fichier (un fichier par ligne, lignes vides entre profils) est conservée.
 """
 import argparse
@@ -30,6 +32,21 @@ from pathlib import Path
 import comfy_profiles as cp
 
 FILE_SECTIONS = ("models", "workflows")
+DEPLOY_ENV = Path(__file__).resolve().parent.parent / "deploy" / ".env"
+TOKEN_KEYS = ("HF_TOKEN", "CIVITAI_TOKEN")
+
+
+def load_deploy_tokens():
+    """Reprend les tokens de deploy/.env (hors du pod), sans écraser l'environnement."""
+    if not DEPLOY_ENV.is_file():
+        return
+    for line in DEPLOY_ENV.read_text().splitlines():
+        key, sep, value = line.strip().partition("=")
+        key, value = key.strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if sep and key in TOKEN_KEYS and value and not os.environ.get(key):
+            os.environ[key] = value
 
 
 # --- Tailles à la source ------------------------------------------------------------------
@@ -206,9 +223,12 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--config", help="fichier de profils à mettre à jour")
+    parser.add_argument("--force", action="store_true",
+                        help="réinterroge aussi les fichiers dont la taille est déjà connue")
     parser.add_argument("--dry-run", action="store_true", help="affiche les tailles sans écrire le fichier")
     args = parser.parse_args()
 
+    load_deploy_tokens()
     path = cp.config_path(args.config or default_config())
     print(f">> Config : {path}")
     profiles = cp.load_profiles(path)
@@ -221,7 +241,9 @@ def main():
         for name, profile in profiles.items()
         for section in FILE_SECTIONS
         for item in profile.get(section, [])
+        if args.force or not isinstance(item.get("size"), int)
     ]
+    print(f">> {len(items)} taille(s) à récupérer" + (" (--force)" if args.force else ""))
     try:
         failures = fetch_sizes(items)
     except cp.ConfigError as e:
@@ -245,7 +267,7 @@ def main():
         print(">> --dry-run : fichier non modifié.")
     else:
         blank_before = set(re.findall(r'\n[ \t]*\n[ \t]*"([^"]+)"\s*:\s*\{', text))
-        path.write_text(format_config(data, blank_before))
+        path.write_text(format_config(data, blank_before), newline="\n")
         print(f">> {path} mis à jour.")
     return 1 if failures else 0
 

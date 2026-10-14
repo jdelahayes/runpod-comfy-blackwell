@@ -40,7 +40,9 @@ Les profils disponibles sont définis dans [`scripts/profiles.json`](scripts/pro
 La taille de chaque profil (`extends` compris, custom nodes non comptés) est indiquée dans
 `profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec
 `scripts/profile_sizes.py` : il interroge Hugging Face / CivitAI sans rien télécharger et met à
-jour le fichier (`--dry-run` pour seulement afficher, `HF_TOKEN` pour les dépôts gated).
+jour le fichier (`--dry-run` pour seulement afficher, `HF_TOKEN` pour les dépôts gated, repris de `deploy/.env` s'il n'est pas dans l'environnement). Seuls
+les fichiers sans taille sont interrogés ; `--force` réinterroge tout (ex. fichier mis à jour à
+la source).
 
 ### Fichier de profils
 
