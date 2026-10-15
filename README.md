@@ -12,7 +12,7 @@ démarre vite, à chaque fois. Voir `deploy/` pour tout le cycle de vie via `run
 ## Architecture
 
 ```
-runpod-blackwell-base (CUDA 13.0 / PyTorch 2.14 / SageAttention)
+runpod-blackwell-base (CUDA 13.2 / PyTorch 2.14 / SageAttention)
         │
         ▼
 runpod-comfy-blackwell (ComfyUI v0.40.0 + Manager intégré (--enable-manager) + panneau Profils)
@@ -161,7 +161,7 @@ VAE de `krea2-common`. Les custom nodes de l'image et les paquets pip ne sont ja
 supprimés. Un profil de `COMFY_PROFILES` désinstallé revient au prochain démarrage du pod.
 
 `int8_convrot` est privilégié à `fp8_scaled`, sur recommandation de Comfy-Org (meilleure
-qualité, CUDA 13.0 requis, ce qui est le cas ici).
+qualité, CUDA ≥ 13.0 requis, ce qui est le cas ici avec 13.2).
 
 ⚠️ L'usage commercial des vidéos générées localement nécessite une licence commerciale
 MiniMax (voir la doc du modèle).
