@@ -174,7 +174,7 @@
     },
 
     "qwen_image_2.1-common": {
-      "description": "Qwen Image 2.1 Turbo (int8)",
+      "description": "Qwen Image 2.1 Common",
       "size": "10,1 Go",
       "extends": ["comfyui-common"],
       "models": [
@@ -184,7 +184,7 @@
     },
 
     "qwen_image_2.1-common-int8": {
-      "description": "Qwen Image 2.1 Common (bf16)",
+      "description": "Qwen Image 2.1 Common (int8)",
       "size": "19,5 Go",
       "extends": ["qwen_image_2.1-common"],
       "models": [
@@ -230,10 +230,10 @@
 
     "qwen_image_2.1-bf16": {
       "description": "Qwen Image 2.1 (bf16)",
-      "size": "45,2 Go",
+      "size": "41,9 Go",
       "extends": ["qwen_image_2.1-common-bf16"],
       "models": [
-        {"type": "diffusion_models/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "text_encoders/qwen3vl_8b_bf16.safetensors", "size": 17534334616}
+        {"type": "diffusion_models/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "diffusion_models/qwen_image_2.1_bf16.safetensors", "size": 14230280616}
       ]
     },
 
