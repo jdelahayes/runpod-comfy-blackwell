@@ -17,7 +17,7 @@
       "extends": ["comfyui-common"],
       "models": [
         {"type": "vae/h3", "hf": "Comfy-Org/MiniMax-H3", "file": "vae/minimax_h3_audio_vae_fp32.safetensors", "size": 605254808},
-        {"type": "vae/h3", "github": "https://github.com/madebyollin/taehv.git", "file": "safetensors/taeh3.safetensors", "size": 22709752},
+        {"type": "vae/h3/madebyollin", "github": "https://github.com/madebyollin/taehv.git", "file": "safetensors/taeh3.safetensors", "size": 22709752},
         {"type": "latent_upscale_models/h3/lbh-123-ai", "hf": "LBH-123-AI/Minimax_h3_latent_Upscaler", "file": "minimax_h3_latent_upscaler_3d_conv_v1/minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors", "size": 690592672}
       ],
       "custom_nodes": [
