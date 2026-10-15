@@ -115,11 +115,13 @@ cours, édition, import et export de `profiles.json`, et redémarrage de ComfyUI
 après l'installation de nouveaux custom nodes). Le fichier modifié est gardé sur le Network
 Volume (voir *Fichier de profils*).
 
-La désinstallation (`comfy_profiles.py uninstall PROFIL[,...] [--dry-run]`) supprime les
-modèles, workflows et custom nodes des profils, `extends` compris, **sauf** ce qui sert encore
-à un profil gardé : un profil de `COMFY_PROFILES`, ou un autre profil complètement installé.
-Exemple : désinstaller `krea2` alors que `krea2-raw` est installé garde le text encoder et le
-VAE de `krea2-common`. Seul ce que le gestionnaire a installé lui-même est supprimé (manifeste
+La désinstallation (`comfy_profiles.py uninstall PROFIL[,...] [--with-extends] [--dry-run]`)
+supprime les modèles, workflows et custom nodes propres aux profils, **sauf** ce qui sert
+encore à un profil gardé : un profil de `COMFY_PROFILES`, ou un autre profil complètement
+installé, y compris ceux dont ils héritent. Exemple : désinstaller `krea2` garde le text
+encoder et le VAE de `krea2-common`. `--with-extends` (case « Inclure les profils hérités »
+du panneau) désinstalle aussi les profils hérités, par exemple pour `minimax-h3-all-*`, qui ne
+fait que regrouper d'autres profils. Seul ce que le gestionnaire a installé lui-même est supprimé (manifeste
 `user/__comfy_profiles/installed.json`, repris du contenu du volume au premier démarrage avec
 comfyui-profiles v0.3.0) : les custom nodes de l'image, les fichiers copiés à la main et les
 paquets pip restent. Un profil de `COMFY_PROFILES` désinstallé revient au prochain démarrage

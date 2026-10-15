@@ -118,18 +118,18 @@
     },
 
     "krea2-common": {
-      "description": "Krea 2 : composants partagés (text encoder Qwen3-VL 4B bf16, VAE Qwen Image). Pas utilisable seul.",
-      "size": "9,1 Go",
+      "description": "Krea 2 : composants partagés (text encoder Qwen3-VL, VAE Qwen Image). Pas utilisable seul.",
+      "size": "5,5 Go",
       "extends": ["comfyui-common"],
       "models": [
-        {"type": "text_encoders/krea2", "hf": "Comfy-Org/Krea-2", "file": "text_encoders/qwen3vl_4b_bf16.safetensors", "size": 8875719384},
+        {"type": "text_encoders/krea2", "hf": "Comfy-Org/Krea-2", "file": "text_encoders/qwen3vl_4b_fp8_scaled.safetensors", "size": 5242467968},
         {"type": "vae/krea2", "hf": "Comfy-Org/Krea-2", "file": "vae/qwen_image_vae.safetensors", "size": 253806246}
       ]
     },
 
     "krea2": {
       "description": "Krea 2 Turbo (image), int8_convrot.",
-      "size": "22,6 Go",
+      "size": "19,0 Go",
       "extends": ["krea2-common"],
       "models": [
         {"type": "diffusion_models/krea2", "hf": "Comfy-Org/Krea-2", "file": "diffusion_models/krea2_turbo_int8_convrot.safetensors", "size": 13492686496}
@@ -138,7 +138,7 @@
 
     "krea2-raw": {
       "description": "Krea 2 Raw (modèle non distillé, tous les steps), int8_convrot.",
-      "size": "22,6 Go",
+      "size": "19,0 Go",
       "extends": ["krea2-common"],
       "models": [
         {"type": "diffusion_models/krea2", "hf": "Comfy-Org/Krea-2", "file": "diffusion_models/krea2_raw_int8_convrot.safetensors", "size": 13492686496}
@@ -147,7 +147,7 @@
 
     "krea2-styles": {
       "description": "Krea 2 Turbo + les 10 LoRA de style officiels. Chaque LoRA a son mot déclencheur (voir le README du dépôt Comfy-Org/Krea-2).",
-      "size": "27,3 Go",
+      "size": "23,7 Go",
       "extends": ["krea2"],
       "models": [
         {"type": "loras/krea2/style", "hf": "Comfy-Org/Krea-2", "file": "loras/krea2_darkbrush.safetensors", "size": 469291992},
