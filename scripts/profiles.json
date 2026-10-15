@@ -239,14 +239,15 @@
 
     "qwen_image_edit_2511-turbo-int8": {
       "description": "Qwen Image Edit 2511 (int8) + Turbo",
-      "size": "31,3 Go",
+      "size": "31,6 Go",
       "extends": ["comfyui-common"],
       "models": [
         {"type": "diffusion_models/qwen_image_edit_2511", "hf": "Comfy-Org/Qwen-Image-Edit_ComfyUI", "file": "split_files/diffusion_models/qwen_image_edit_2511_int8_convrot.safetensors", "size": 20499083824},
         {"type": "text_encoders/qwen_image_edit_2511", "hf": "Comfy-Org/HunyuanVideo_1.5_repackaged", "file": "split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "size": 9384670680},
+        {"type": "vae/qwen_image_edit_2511", "hf": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/vae/qwen_image_vae.safetensors", "size": 253806246},
         {"type": "loras/qwen_image_edit_2511/lightx2v", "hf": "lightx2v/Qwen-Image-Edit-2511-Lightning", "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "size": 849608296},
         {"type": "loras/qwen_image_edit_2511/fal", "hf": "fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA", "file": "qwen-image-edit-2511-multiple-angles-lora.safetensors", "size": 295140688},
-        {"type": "vae/qwen_image_edit_2511", "hf": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/vae/qwen_image_vae.safetensors", "size": 253806246}
+        {"type": "loras/qwen_image_edit_2511/systms", "hf": "systms/SYSTMS-ACTION-LoRA-Qwen-Image-Edit-2511", "file": "QWEN_EDIT_ACTION_V1.safetensors", "size": 295146192}
       ]
     },
 
