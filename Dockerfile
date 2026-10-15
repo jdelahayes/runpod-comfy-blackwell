@@ -7,7 +7,7 @@
 ARG BASE_IMAGE=runpod-blackwell-base:latest
 ARG COMFYUI_VERSION=v0.40.0
 # Panneau « Profils » et gestionnaire de profils (comfy_profiles.py) : dépôt séparé, version fixée.
-ARG COMFYUI_PROFILES_VERSION=v0.2.0
+ARG COMFYUI_PROFILES_VERSION=v0.3.0
 
 FROM ${BASE_IMAGE}
 ARG COMFYUI_VERSION
@@ -18,7 +18,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     COMFY_HOME=/workspace/ComfyUI \
-    MODELS_VOLUME_DIR=/runpod-volume/models
+    MODELS_VOLUME_DIR=/runpod-volume/models \
+    COMFY_PROFILES_SEED=/opt/scripts/profiles.json
 
 # ffmpeg : requis par les nodes vidéo (mux audio/vidéo, sortie MiniMax H3).
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
@@ -44,7 +45,9 @@ RUN find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} +
 # Profils d'utilisation (modèles, custom nodes, workflows...) : voir README.md, section Profils.
 # Le gestionnaire et le calcul des tailles viennent du custom node comfyui-profiles (panneau
 # Profils dans l'UI) ; les liens dans /opt/scripts gardent les chemins utilisés par
-# entrypoint.sh et 07-sync-profiles.py.
+# entrypoint.sh et 07-sync-profiles.py. scripts/profiles.json est le modèle (COMFY_PROFILES_SEED) :
+# utilisé tant que l'utilisateur n'a pas son propre fichier, dans user/__comfy_profiles/ (sur le
+# Network Volume).
 RUN git clone --branch "${COMFYUI_PROFILES_VERSION}" --depth 1 \
       https://github.com/jdelahayes/comfyui-profiles.git "${COMFY_HOME}/custom_nodes/comfyui-profiles" \
     && mkdir -p /opt/scripts \

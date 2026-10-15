@@ -65,6 +65,9 @@ link_volume_dirs() {
     echo ">> locaux au conteneur (perdus à sa suppression)."
     return
   fi
+  # Custom nodes des profils clonés sur le volume et liés dans custom_nodes/ (ceux de l'image,
+  # de vrais dossiers dans custom_nodes/, ne sont jamais touchés par le gestionnaire).
+  export COMFY_PROFILES_NODES_STORE="${COMFY_PROFILES_NODES_STORE:-${mount_point}/custom_nodes}"
   link_to_volume "${COMFY_HOME}/models" "$MODELS_VOLUME_DIR"
   link_to_volume "${COMFY_HOME}/input" "${mount_point}/input"
   link_to_volume "${COMFY_HOME}/output" "${mount_point}/output"
@@ -101,7 +104,8 @@ setup_jupyter() {
 # l'image, seulement de ce qui est écrit dans /etc/environment, lu par pam_env). Utile pour
 # lancer /opt/scripts/comfy_profiles.py à la main ou via deploy/07-sync-profiles.sh.
 persist_env() {
-  for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN GDRIVE_ZIP_PASSWORD COMFY_HOME MODELS_VOLUME_DIR COMFY_PROFILES COMFY_PROFILES_CONFIG; do
+  for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN GDRIVE_ZIP_PASSWORD COMFY_HOME MODELS_VOLUME_DIR \
+             COMFY_PROFILES COMFY_PROFILES_CONFIG COMFY_PROFILES_SEED COMFY_PROFILES_NODES_STORE; do
     if [[ -n "${!var:-}" ]]; then
       sed -i "/^${var}=/d" /etc/environment
       echo "${var}=${!var}" >> /etc/environment
@@ -124,9 +128,10 @@ persist_path() {
 
 setup_ssh
 persist_path
+# Avant persist_env et JupyterLab : définit COMFY_PROFILES_NODES_STORE quand un volume est monté.
+link_volume_dirs
 persist_env
 setup_jupyter
-link_volume_dirs
 
 # Installe ce qui manque pour les profils demandés (après link_volume_dirs : modèles et workflows
 # sont ainsi écrits directement sur le volume), avant de lancer ComfyUI (qui doit voir les

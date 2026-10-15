@@ -50,73 +50,35 @@ profils du pod.
 
 ### Fichier de profils
 
-Par défaut, le pod utilise `scripts/profiles.json`, embarqué dans l'image en
-`/opt/scripts/profiles.json`. Pour le personnaliser sans rebuild, fais pointer
-`COMFY_PROFILES_CONFIG` vers le Network Volume, par exemple `/runpod-volume/config/profiles.json`.
-Si ce fichier n'existe pas encore, la config de l'image y est copiée au premier démarrage : il ne
-reste qu'à l'éditer (via JupyterLab par exemple), puis à relancer une synchronisation.
+[`scripts/profiles.json`](scripts/profiles.json), embarqué dans l'image en
+`/opt/scripts/profiles.json`, est le **modèle** (`COMFY_PROFILES_SEED`) : le pod l'utilise tant
+que tu n'as pas ton propre fichier. Éditer, importer (fichier ou URL) ou recalculer les tailles
+depuis le panneau Profils crée ce fichier dans `ComfyUI/user/__comfy_profiles/profiles.json`,
+donc sur le Network Volume (`user/` y est lié) : il survit aux pods et prend le relais du
+modèle. **Revenir au modèle** dans le panneau le met de côté. Sans fichier à toi, les profils
+ajoutés à `scripts/profiles.json` arrivent avec la prochaine image.
 
-Format :
+`COMFY_PROFILES_CONFIG` (optionnel) impose un autre fichier, par exemple
+`/runpod-volume/config/profiles.json` : s'il n'existe pas encore, le modèle y est copié au
+premier démarrage.
 
-```jsonc
-{
-  "profiles": {
-    "mon-profil": {
-      "description": "Texte libre, affiché par `list`.",
-      "extends": ["krea2"],              // hérite de tout le contenu d'autres profils
-      "models": [
-        // type = sous-dossier de ComfyUI/models (loras, vae, diffusion_models, checkpoints...)
-        {"type": "loras", "hf": "org/depot", "file": "chemin/dans/le/depot.safetensors"},
-        {"type": "loras", "hf": "org/depot", "file": "x.safetensors", "revision": "main", "name": "renomme.safetensors"},
-        {"type": "checkpoints", "civitai": 123456, "name": "mon_modele.safetensors"},   // id de VERSION du modèle
-        {"type": "vae", "github": "https://github.com/madebyollin/taehv.git", "file": "safetensors/taeh3.safetensors"},  // un seul fichier du dépôt
-        {"type": "upscale_models", "url": "https://exemple.com/4x.pth", "name": "4x.pth"}
-      ],
-      "custom_nodes": [
-        {"git": "https://github.com/auteur/ComfyUI-Truc.git"},
-        {"git": "https://github.com/auteur/ComfyUI-Machin.git", "ref": "v1.2.0", "name": "Machin"},
-        // zip public sur Google Drive (lien de partage ou id du fichier)
-        {"gdrive": "https://drive.google.com/file/d/1AbC.../view?usp=sharing", "name": "ComfyUI-Bidule"}
-      ],
-      "workflows": [
-        {"url": "https://exemple.com/workflow.json", "name": "mon_workflow.json"}
-      ],
-      "pip": ["onnxruntime-gpu"]
-    }
-  }
-}
-```
+Le format (sources `hf`, `github`, `civitai`, `url`, custom nodes `git` / `gdrive`, `extends`,
+`pip`...) est décrit dans le README de
+[comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles#format), avec un schéma JSON
+pour l'autocomplétion dans un éditeur.
 
-(Le vrai fichier est du JSON strict, sans commentaires. Les clés qui commencent par `//` sont
-ignorées et peuvent servir de commentaires.)
+Spécificités du pod :
 
-- **Sources** (modèles et workflows) : une seule par élément parmi `hf` (+ `file`, et
-  optionnellement `revision`), `github` (dépôt public `owner/depot` ou son URL, + `file`, et
-  optionnellement `revision` : branche, tag ou commit), `civitai` (id de version, utilise
-  `CIVITAI_TOKEN`) ou `url`. Avec `github`, seul le fichier est téléchargé, sans cloner le
-  dépôt (Git LFS compris). `name` fixe le nom du fichier local. Il est obligatoire pour
-  `civitai` et `url`, et vaut par défaut le nom de `file` pour `hf` et `github`.
-- **Destinations** : modèles dans `<volume>/models/<type>/`, custom nodes clonés dans
-  `<volume>/custom_nodes/` et liés dans `ComfyUI/custom_nodes/`, workflows dans
-  `ComfyUI/user/default/workflows/`. Sans volume, tout va directement dans `ComfyUI/`.
-- **Dépendances Python** : le `requirements.txt` et le `install.py` des custom nodes, ainsi que
-  les paquets `pip`, sont installés dans l'environnement Python du conteneur. Ils sont donc
-  réinstallés automatiquement sur un nouveau pod, même si le volume est déjà peuplé.
-- **Version des custom nodes** : `ref` (optionnel) fixe une branche, un tag ou un commit. Sans
-  `ref`, la branche par défaut est clonée une fois puis jamais mise à jour. Si `ref` change, le
-  prochain `sync` bascule le clone existant dessus. Une branche n'est pas remise à jour tant
-  que `ref` reste le même.
-- **Custom nodes en zip sur Google Drive** : `gdrive` (lien de partage ou id du fichier, partagé
-  en « Tous les utilisateurs disposant du lien ») et `name` (nom du dossier, obligatoire). Le
-  zip est extrait dans `<volume>/custom_nodes/<name>` ; s'il contient un unique dossier racine,
-  c'est son contenu qui est pris. Il n'est retéléchargé que si `gdrive` change : pour mettre à
-  jour le node, publie le nouveau zip comme un nouveau fichier Drive (ou supprime le dossier).
-  Le dépôt étant public, le lien l'est aussi : pour protéger le contenu, chiffre le zip
-  (7-Zip : format zip, chiffrement AES-256) avec le mot de passe `GDRIVE_ZIP_PASSWORD` de
-  `deploy/.env` (secret RunPod `gdrive_zip_password`). Le chiffrement est détecté
-  automatiquement ; un zip non chiffré s'extrait sans mot de passe.
-- **Custom nodes déjà dans l'image** (ex. comfyui-profiles) : laissés tels quels.
-- Une clé inconnue (faute de frappe) fait échouer la commande avant toute action.
+- **Destinations** : modèles dans `/runpod-volume/models/<type>/` (via le lien `models/`),
+  custom nodes clonés dans `/runpod-volume/custom_nodes/` (`COMFY_PROFILES_NODES_STORE`) et
+  liés dans `ComfyUI/custom_nodes/`, workflows dans `ComfyUI/user/default/workflows/`. Sans
+  volume, tout va directement dans `ComfyUI/`, perdu avec le pod.
+- **Dépendances Python** : installées dans le venv du conteneur, donc réinstallées
+  automatiquement sur un nouveau pod, même si le volume est déjà peuplé.
+- **Custom nodes de l'image** (ex. comfyui-profiles) : de vrais dossiers dans
+  `ComfyUI/custom_nodes/`, jamais touchés par le gestionnaire.
+- **Zips Drive chiffrés** : mot de passe `GDRIVE_ZIP_PASSWORD` de `deploy/.env` (secret RunPod
+  `gdrive_zip_password`).
 
 ### Commandes
 
@@ -149,16 +111,19 @@ relance la CI).
 
 Le panneau fait la même chose que `07-sync-profiles.py`, sans passer par SSH : état de chaque
 profil (vert installé, orange partiel), installation, désinstallation, arrêt d'une action en
-cours, édition de `profiles.json` et redémarrage de ComfyUI (nécessaire après l'installation de
-nouveaux custom nodes). Sans `COMFY_PROFILES_CONFIG` sur le Network Volume, l'édition modifie
-la copie de l'image, perdue avec le pod.
+cours, édition, import et export de `profiles.json`, et redémarrage de ComfyUI (nécessaire
+après l'installation de nouveaux custom nodes). Le fichier modifié est gardé sur le Network
+Volume (voir *Fichier de profils*).
 
 La désinstallation (`comfy_profiles.py uninstall PROFIL[,...] [--dry-run]`) supprime les
 modèles, workflows et custom nodes des profils, `extends` compris, **sauf** ce qui sert encore
 à un profil gardé : un profil de `COMFY_PROFILES`, ou un autre profil complètement installé.
 Exemple : désinstaller `krea2` alors que `krea2-raw` est installé garde le text encoder et le
-VAE de `krea2-common`. Les custom nodes de l'image et les paquets pip ne sont jamais
-supprimés. Un profil de `COMFY_PROFILES` désinstallé revient au prochain démarrage du pod.
+VAE de `krea2-common`. Seul ce que le gestionnaire a installé lui-même est supprimé (manifeste
+`user/__comfy_profiles/installed.json`, repris du contenu du volume au premier démarrage avec
+comfyui-profiles v0.3.0) : les custom nodes de l'image, les fichiers copiés à la main et les
+paquets pip restent. Un profil de `COMFY_PROFILES` désinstallé revient au prochain démarrage
+du pod.
 
 `int8_convrot` est privilégié à `fp8_scaled`, sur recommandation de Comfy-Org (meilleure
 qualité, CUDA ≥ 13.0 requis, ce qui est le cas ici avec 13.2).
