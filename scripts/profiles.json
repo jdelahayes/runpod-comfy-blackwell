@@ -112,7 +112,7 @@
       "size": "52,2 Go",
       "extends": ["minimax-h3-common-pruned_int8"],
       "models": [
-        {"type": "diffusion_models/h3/smhfacct", "hf": "smhfacct/Minimax-H3-fl2va-ref2va-hybrid-models", "file": "minimax_h3_hybrid_fl2va_ref2va_b20-49-int8.safetensors"}
+        {"type": "diffusion_models/h3/smhfacct", "hf": "smhfacct/Minimax-H3-fl2va-ref2va-hybrid-models", "file": "minimax_h3_hybrid_fl2va_ref2va_b20-49-int8.safetensors", "size": 20970379632}
       ]
     },
 
