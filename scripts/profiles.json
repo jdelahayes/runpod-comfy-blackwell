@@ -70,7 +70,7 @@
     "minimax-h3-all-bf16": {
       "description": "MiniMax H3 all profiles (bf16)",
       "size": "190,6 Go",
-      "extends": ["minimax-h3-common-bf16", "minimax-h3-fl2va-bf16", "minimax-h3-ref2va-bf16"]
+      "extends": ["minimax-h3-fl2va-bf16", "minimax-h3-ref2va-bf16"]
     },
 
     "minimax-h3-common-pruned_int8": {
@@ -170,6 +170,93 @@
         {"type": "diffusion_models/flux2-klein", "hf": "black-forest-labs/FLUX.2-klein-9B", "file": "flux-2-klein-9b.safetensors", "size": 18157185168},
         {"type": "text_encoders/flux2-klein", "hf": "Comfy-Org/vae-text-encorder-for-flux-klein-9b", "file": "split_files/text_encoders/qwen_3_8b.safetensors", "size": 16381517176},
         {"type": "vae/flux2-klein", "hf": "Comfy-Org/vae-text-encorder-for-flux-klein-9b", "file": "split_files/vae/flux2-vae.safetensors", "size": 336211292}
+      ]
+    },
+
+    "qwen_image_2.1-common": {
+      "description": "Qwen Image 2.1 Turbo (int8)",
+      "size": "10,1 Go",
+      "extends": ["comfyui-common"],
+      "models": [
+        {"type": "text_encoders/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "text_encoders/qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors", "size": 9471072252},
+        {"type": "vae/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "vae/qwen_image_2.1_vae_bf16.safetensors", "size": 675509688}
+      ]
+    },
+
+    "qwen_image_2.1-common-int8": {
+      "description": "Qwen Image 2.1 Common (bf16)",
+      "size": "19,5 Go",
+      "extends": ["qwen_image_2.1-common"],
+      "models": [
+        {"type": "text_encoders/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "text_encoders/qwen3vl_8b_int8_convrot.safetensors", "size": 9350798360}
+      ]
+    },
+
+    "qwen_image_2.1-turbo-int8": {
+      "description": "Qwen Image 2.1 Turbo (int8)",
+      "size": "26,8 Go",
+      "extends": ["qwen_image_2.1-common-int8"],
+      "models": [
+        {"type": "diffusion_models/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors", "size": 7256787829}
+      ]
+    },
+
+    "qwen_image_2.1-int8": {
+      "description": "Qwen Image 2.1 (int8)",
+      "size": "26,8 Go",
+      "extends": ["qwen_image_2.1-common-int8"],
+      "models": [
+        {"type": "diffusion_models/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "diffusion_models/qwen_image_2.1_int8_convrot.safetensors", "size": 7256783064}
+      ]
+    },
+
+    "qwen_image_2.1-common-bf16": {
+      "description": "Qwen Image 2.1 Common (bf16)",
+      "size": "27,7 Go",
+      "extends": ["qwen_image_2.1-common"],
+      "models": [
+        {"type": "text_encoders/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "text_encoders/qwen3vl_8b_bf16.safetensors", "size": 17534334616}
+      ]
+    },
+
+    "qwen_image_2.1-turbo-bf16": {
+      "description": "Qwen Image 2.1 Turbo (bf16)",
+      "size": "41,9 Go",
+      "extends": ["qwen_image_2.1-common-bf16"],
+      "models": [
+        {"type": "diffusion_models/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "diffusion_models/qwen_image_2.1_turbo_bf16.safetensors", "size": 14230280616}
+      ]
+    },
+
+    "qwen_image_2.1-bf16": {
+      "description": "Qwen Image 2.1 (bf16)",
+      "size": "45,2 Go",
+      "extends": ["qwen_image_2.1-common-bf16"],
+      "models": [
+        {"type": "diffusion_models/qwen_image_2.1", "hf": "Comfy-Org/Qwen-Image-2.1", "file": "text_encoders/qwen3vl_8b_bf16.safetensors", "size": 17534334616}
+      ]
+    },
+
+    "qwen_image_edit_2511-turbo-int8": {
+      "description": "Qwen Image Edit 2511 (int8) + Turbo",
+      "size": "31,3 Go",
+      "extends": ["comfyui-common"],
+      "models": [
+        {"type": "diffusion_models/qwen_image_edit_2511", "hf": "Comfy-Org/Qwen-Image-Edit_ComfyUI", "file": "split_files/diffusion_models/qwen_image_edit_2511_int8_convrot.safetensors", "size": 20499083824},
+        {"type": "text_encoders/qwen_image_edit_2511", "hf": "Comfy-Org/HunyuanVideo_1.5_repackaged", "file": "split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "size": 9384670680},
+        {"type": "loras/qwen_image_edit_2511/lightx2v", "hf": "lightx2v/Qwen-Image-Edit-2511-Lightning", "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "size": 849608296},
+        {"type": "loras/qwen_image_edit_2511/fal", "hf": "fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA", "file": "qwen-image-edit-2511-multiple-angles-lora.safetensors", "size": 295140688},
+        {"type": "vae/qwen_image_edit_2511", "hf": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/vae/qwen_image_vae.safetensors", "size": 253806246}
+      ]
+    },
+
+    "yue2-3b-int8": {
+      "description": "YuE2 (3b, int8)",
+      "size": "5,3 Go",
+      "extends": ["comfyui-common"],
+      "models": [
+        {"type": "checkpoints/yue2", "hf": "Comfy-Org/YuE2", "file": "checkpoints/yue2_3b_int8_convrot.safetensors", "size": 3960938800},
+        {"type": "audio_encoders", "hf": "Comfy-Org/YuE2", "file": "audio_encoders/sheetsage2_bf16.safetensors", "size": 1386868122}
       ]
     }
   }
