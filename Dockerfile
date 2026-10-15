@@ -7,7 +7,7 @@
 ARG BASE_IMAGE=runpod-blackwell-base:latest
 ARG COMFYUI_VERSION=v0.40.0
 # Panneau « Profils » et gestionnaire de profils (comfy_profiles.py) : dépôt séparé, version fixée.
-ARG COMFYUI_PROFILES_VERSION=v0.3.4
+ARG COMFYUI_PROFILES_VERSION=v0.3.5
 
 FROM ${BASE_IMAGE}
 ARG COMFYUI_VERSION
