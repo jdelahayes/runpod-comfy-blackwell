@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # Point d'entrée du pod : démarre SSH (standard RunPod) et JupyterLab, installe ce qui manque
-# pour les profils de COMFY_PROFILES (modèles, custom nodes, ... — voir scripts/profiles.json),
+# pour les profils de COMFY_PROFILES (modèles, custom nodes, ... — fichier récupéré depuis
+# COMFY_PROFILES_URL),
 # place models/, input/, output/ et user/ sur le Network Volume, puis lance ComfyUI.
 set -euo pipefail
 
 COMFY_HOME="${COMFY_HOME:-/workspace/ComfyUI}"
 MODELS_VOLUME_DIR="${MODELS_VOLUME_DIR:-/runpod-volume/models}"
+COMFY_PROFILES_SEED="${COMFY_PROFILES_SEED:-/opt/scripts/profiles.json}"
+# Vide (ex. passé vide par le template) = URL par défaut.
+COMFY_PROFILES_URL="${COMFY_PROFILES_URL:-https://github.com/jdelahayes/comfyui-profiles-repo/raw/refs/heads/main/profiles.json}"
+export COMFY_PROFILES_SEED COMFY_PROFILES_URL
 
 # Derrière le proxy RunPod (https://<pod-id>-<port>.proxy.runpod.net), le Host vu par le
 # conteneur ne correspond pas à l'IP interne : ComfyUI (et Jupyter) rejettent ça par défaut
@@ -74,6 +79,44 @@ link_volume_dirs() {
   link_to_volume "${COMFY_HOME}/user" "${mount_point}/user"
 }
 
+# --- Modèle de profils (COMFY_PROFILES_SEED), récupéré à chaque démarrage ---
+# profiles.json n'est pas dans l'image : il est téléchargé depuis COMFY_PROFILES_URL (dépôt
+# GitHub) et validé (JSON) avant de remplacer le modèle. Une copie est gardée sur le Network
+# Volume ; si le téléchargement échoue (GitHub injoignable, URL erronée...), on repart d'elle.
+fetch_profiles_seed() {
+  local mount_point cache tmp
+  mount_point="$(dirname "$MODELS_VOLUME_DIR")"
+  cache="${mount_point}/cache/profiles.json"
+  mkdir -p "$(dirname "$COMFY_PROFILES_SEED")"
+  tmp="$(mktemp)"
+  echo ">> Récupération des profils : ${COMFY_PROFILES_URL}"
+  if python - "$COMFY_PROFILES_URL" "$tmp" <<'PY'
+import json, sys, urllib.request
+url, dest = sys.argv[1:3]
+with urllib.request.urlopen(url, timeout=30) as resp:
+    data = resp.read()
+json.loads(data)
+with open(dest, "wb") as f:
+    f.write(data)
+PY
+  then
+    mv "$tmp" "$COMFY_PROFILES_SEED"
+    chmod 644 "$COMFY_PROFILES_SEED"
+    if [[ -d "$mount_point" ]]; then
+      mkdir -p "$(dirname "$cache")"
+      cp "$COMFY_PROFILES_SEED" "$cache"
+    fi
+  else
+    rm -f "$tmp"
+    if [[ -f "$cache" ]]; then
+      echo ">> Échec du téléchargement : copie du volume utilisée (${cache})."
+      cp "$cache" "$COMFY_PROFILES_SEED"
+    else
+      echo ">> Échec du téléchargement et aucune copie sur le volume : pas de modèle de profils."
+    fi
+  fi
+}
+
 # --- JupyterLab (arrière-plan, lancé avant le exec final vers ComfyUI) ---
 setup_jupyter() {
   local token="${JUPYTER_TOKEN:-}"
@@ -105,7 +148,8 @@ setup_jupyter() {
 # lancer /opt/scripts/comfy_profiles.py à la main ou via deploy/07-sync-profiles.sh.
 persist_env() {
   for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN GDRIVE_ZIP_PASSWORD COMFY_HOME MODELS_VOLUME_DIR \
-             COMFY_PROFILES COMFY_PROFILES_CONFIG COMFY_PROFILES_SEED COMFY_PROFILES_NODES_STORE; do
+             COMFY_PROFILES COMFY_PROFILES_CONFIG COMFY_PROFILES_SEED COMFY_PROFILES_URL \
+             COMFY_PROFILES_NODES_STORE; do
     if [[ -n "${!var:-}" ]]; then
       sed -i "/^${var}=/d" /etc/environment
       echo "${var}=${!var}" >> /etc/environment
@@ -130,6 +174,7 @@ setup_ssh
 persist_path
 # Avant persist_env et JupyterLab : définit COMFY_PROFILES_NODES_STORE quand un volume est monté.
 link_volume_dirs
+fetch_profiles_seed
 persist_env
 setup_jupyter
 

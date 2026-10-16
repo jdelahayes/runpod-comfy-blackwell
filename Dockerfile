@@ -45,7 +45,8 @@ RUN find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} +
 # Profils d'utilisation (modèles, custom nodes, workflows...) : voir README.md, section Profils.
 # Le gestionnaire et le calcul des tailles viennent du custom node comfyui-profiles (panneau
 # Profils dans l'UI) ; les liens dans /opt/scripts gardent les chemins utilisés par
-# entrypoint.sh et 07-sync-profiles.py. scripts/profiles.json est le modèle (COMFY_PROFILES_SEED) :
+# entrypoint.sh et 07-sync-profiles.py. Le modèle de profils (COMFY_PROFILES_SEED) n'est pas dans
+# l'image : entrypoint.sh le télécharge à chaque démarrage depuis COMFY_PROFILES_URL. Il est
 # utilisé tant que l'utilisateur n'a pas son propre fichier, dans user/__comfy_profiles/ (sur le
 # Network Volume).
 RUN git clone --branch "${COMFYUI_PROFILES_VERSION}" --depth 1 \
@@ -56,7 +57,6 @@ RUN git clone --branch "${COMFYUI_PROFILES_VERSION}" --depth 1 \
        done
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY scripts/profiles.json /opt/scripts/profiles.json
 RUN chmod +x /usr/local/bin/entrypoint.sh /opt/scripts/comfy_profiles.py /opt/scripts/profile_sizes.py
 
 EXPOSE 8188 8888 22

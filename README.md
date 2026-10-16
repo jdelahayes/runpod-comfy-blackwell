@@ -34,29 +34,28 @@ installe ce qui manque pour les profils listés dans `COMFY_PROFILES` (séparés
 puis lance ComfyUI. Ce qui est déjà présent n'est jamais retéléchargé : le premier démarrage sur
 un volume vide est long, les suivants sont rapides.
 
-Les profils disponibles sont définis dans [`scripts/profiles.json`](scripts/profiles.json) ;
+Les profils disponibles sont définis dans un `profiles.json` hébergé sur GitHub (par défaut
+[comfyui-profiles-repo](https://github.com/jdelahayes/comfyui-profiles-repo/blob/main/profiles.json)) ;
 `./07-sync-profiles.py list` les affiche avec leur description.
 
 La taille de chaque profil (`extends` compris, custom nodes non comptés) est indiquée dans
-`profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec
-`scripts/profile_sizes.sh`, qui lance `profile_sizes.py` du dépôt
-[comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) (cloné à côté de celui-ci,
-ou dans `COMFYUI_PROFILES_DIR`) : il interroge Hugging Face / CivitAI sans rien télécharger et
-met à jour le fichier (`--dry-run` pour seulement afficher ; `HF_TOKEN` pour les dépôts gated,
-repris de `deploy/.env` s'il n'est pas dans l'environnement). Seuls les fichiers sans taille
-sont interrogés ; `--force` réinterroge tout (ex. fichier mis à jour à la source). Sur le pod,
-le bouton **Recalculer les tailles** du panneau Profils fait la même chose sur le fichier de
-profils du pod.
+`profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec `profile_sizes.py`
+du dépôt [comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) (il interroge
+Hugging Face / CivitAI sans rien télécharger), ou sur le pod avec le bouton **Recalculer les
+tailles** du panneau Profils.
 
 ### Fichier de profils
 
-[`scripts/profiles.json`](scripts/profiles.json), embarqué dans l'image en
-`/opt/scripts/profiles.json`, est le **modèle** (`COMFY_PROFILES_SEED`) : le pod l'utilise tant
-que tu n'as pas ton propre fichier. Éditer, importer (fichier ou URL) ou recalculer les tailles
-depuis le panneau Profils crée ce fichier dans `ComfyUI/user/__comfy_profiles/profiles.json`,
+Le **modèle** (`COMFY_PROFILES_SEED`, `/opt/scripts/profiles.json`) n'est pas dans l'image :
+`entrypoint.sh` le télécharge à chaque démarrage du pod depuis `COMFY_PROFILES_URL` (par défaut
+`https://github.com/jdelahayes/comfyui-profiles-repo/raw/refs/heads/main/profiles.json`). Une
+copie est gardée sur le volume (`/runpod-volume/cache/profiles.json`) et reprise si le
+téléchargement échoue. Le pod utilise ce modèle tant que tu n'as pas ton propre fichier.
+Éditer, importer (fichier ou URL) ou recalculer les tailles depuis le panneau Profils crée ce fichier dans `ComfyUI/user/__comfy_profiles/profiles.json`,
 donc sur le Network Volume (`user/` y est lié) : il survit aux pods et prend le relais du
 modèle. **Revenir au modèle** dans le panneau le met de côté. Sans fichier à toi, les profils
-ajoutés à `scripts/profiles.json` arrivent avec la prochaine image.
+poussés sur le dépôt de `COMFY_PROFILES_URL` arrivent au prochain démarrage du pod, sans
+reconstruire l'image.
 
 `COMFY_PROFILES_CONFIG` (optionnel) impose un autre fichier, par exemple
 `/runpod-volume/config/profiles.json` : s'il n'existe pas encore, le modèle y est copié au

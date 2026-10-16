@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Pilote les profils d'utilisation sur le pod (/opt/scripts/comfy_profiles.py, voir
-scripts/profiles.json et la section Profils du README) : se connecte en SSH et lui transmet
+la section Profils du README) : se connecte en SSH et lui transmet
 les arguments reçus ici. Le pod synchronise déjà COMFY_PROFILES à chaque démarrage ; ce script
 sert à ajouter un profil sans redémarrer, ou à explorer les profils disponibles.
 

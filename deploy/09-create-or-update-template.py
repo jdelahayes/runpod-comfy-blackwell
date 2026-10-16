@@ -18,6 +18,7 @@ def build_env_payload():
     return {
         "COMFY_PROFILES": lib.get_env("COMFY_PROFILES"),
         "COMFY_PROFILES_CONFIG": lib.get_env("COMFY_PROFILES_CONFIG"),
+        "COMFY_PROFILES_URL": lib.get_env("COMFY_PROFILES_URL"),
         "HF_TOKEN": "{{ RUNPOD_SECRET_hf_token }}",
         "CIVITAI_TOKEN": "{{ RUNPOD_SECRET_civitai_token }}",
         "JUPYTER_TOKEN": "{{ RUNPOD_SECRET_jupyter_token }}",
