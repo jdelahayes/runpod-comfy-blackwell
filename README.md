@@ -74,8 +74,9 @@ Spécificités du pod :
   volume, tout va directement dans `ComfyUI/`, perdu avec le pod.
 - **Dépendances Python** : installées dans le venv du conteneur, donc réinstallées
   automatiquement sur un nouveau pod, même si le volume est déjà peuplé.
-- **Custom nodes de l'image** (ex. comfyui-profiles) : de vrais dossiers dans
-  `ComfyUI/custom_nodes/`, jamais touchés par le gestionnaire.
+- **Custom nodes hors profils** : les vrais dossiers de `ComfyUI/custom_nodes/` (installés à la
+  main ou par le Manager) ne sont jamais touchés par le gestionnaire. comfyui-profiles lui-même
+  n'est pas un node de profil : voir [Panneau Profils](#panneau-profils-dans-comfyui).
 - **Zips Drive chiffrés** : mot de passe `GDRIVE_ZIP_PASSWORD` de `deploy/.env` (secret RunPod
   `gdrive_zip_password`).
 
@@ -103,10 +104,15 @@ passes par le template.
 Le gestionnaire de profils (`comfy_profiles.py`) et le panneau **Profils** de la barre
 latérale de ComfyUI vivent dans un dépôt séparé,
 [jdelahayes/comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) (voir son README).
-L'image le clone dans `custom_nodes/comfyui-profiles`, à la version fixée par
-`ARG COMFYUI_PROFILES_VERSION` du `Dockerfile`, et le lie en `/opt/scripts/comfy_profiles.py`.
-Pour une nouvelle version : tag dans `comfyui-profiles`, puis mise à jour de cet `ARG` (ce qui
-relance la CI).
+Il n'est pas dans l'image : `entrypoint.sh` l'installe à chaque démarrage du pod, à la version
+`COMFYUI_PROFILES_REF` de `deploy/.env` (tag ou branche ; vide = `latest`, le dernier tag
+`vX.Y.Z` publié). Il est cloné sur le Network Volume (`/runpod-volume/comfyui-profiles`, mis à
+jour par un `git fetch` aux démarrages suivants), puis lié dans `custom_nodes/comfyui-profiles`
+et en `/opt/scripts/comfy_profiles.py`. Une nouvelle version du plugin arrive donc au prochain
+démarrage, sans reconstruire l'image. Si GitHub est injoignable, la copie du volume sert telle
+quelle ; sans copie (volume neuf), ComfyUI démarre sans panneau Profils ni synchronisation des
+profils. Pour figer la version : `COMFYUI_PROFILES_REF="v0.6.1"`, puis
+`09-create-or-update-template.py` si tu passes par le template.
 
 Le panneau fait la même chose que `07-sync-profiles.py`, sans passer par SSH : état de chaque
 profil (vert installé, orange partiel), installation, désinstallation, arrêt d'une action en

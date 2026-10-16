@@ -93,9 +93,12 @@ fetch_profiles_seed() {
   if python - "$COMFY_PROFILES_URL" "$tmp" <<'PY'
 import json, sys, urllib.request
 url, dest = sys.argv[1:3]
-with urllib.request.urlopen(url, timeout=30) as resp:
-    data = resp.read()
-json.loads(data)
+try:
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        data = resp.read()
+    json.loads(data)
+except Exception as e:  # message court : l'appelant se replie sur la copie du volume
+    sys.exit(f">> {url} : {e}")
 with open(dest, "wb") as f:
     f.write(data)
 PY
@@ -115,6 +118,61 @@ PY
       echo ">> Échec du téléchargement et aucune copie sur le volume : pas de modèle de profils."
     fi
   fi
+}
+
+# --- comfyui-profiles (panneau Profils et gestionnaire), installé à chaque démarrage ---
+# Pas dans l'image : une nouvelle version du plugin n'oblige pas à la reconstruire. Cloné à la
+# version COMFYUI_PROFILES_REF (tag ou branche ; "latest" = dernier tag vX.Y.Z publié), sur le
+# Network Volume quand il y en a un (hors de COMFY_PROFILES_NODES_STORE : ce n'est pas un node
+# géré par les profils), puis lié dans custom_nodes/ et en /opt/scripts. Si GitHub est
+# injoignable, la copie déjà présente sert telle quelle.
+install_profiles_plugin() {
+  local repo="${COMFYUI_PROFILES_REPO:-https://github.com/jdelahayes/comfyui-profiles.git}"
+  local ref="${COMFYUI_PROFILES_REF:-latest}"
+  local mount_point dest
+  mount_point="$(dirname "$MODELS_VOLUME_DIR")"
+  if [[ -d "$mount_point" ]]; then
+    dest="${mount_point}/comfyui-profiles"
+  else
+    dest=/opt/comfyui-profiles
+  fi
+
+  if [[ "$ref" == latest ]]; then
+    ref=$(timeout 30 git ls-remote --tags --refs "$repo" 'v*' 2>/dev/null \
+            | sed 's|.*refs/tags/||' | sort -V | tail -n 1) || true
+  fi
+  echo ">> comfyui-profiles : ${ref:-version inconnue (GitHub injoignable ?)} -> ${dest}"
+  if [[ -n "$ref" ]]; then
+    if [[ -d "${dest}/.git" ]]; then
+      if ! { timeout 120 git -C "$dest" fetch -q --depth 1 origin "$ref" \
+             && git -C "$dest" checkout -q -f --detach FETCH_HEAD; }; then
+        echo ">> Échec de la mise à jour de comfyui-profiles : copie existante utilisée."
+      fi
+    else
+      rm -rf "${dest}.tmp"
+      if timeout 120 git -c advice.detachedHead=false clone -q --depth 1 --branch "$ref" "$repo" "${dest}.tmp"; then
+        rm -rf "$dest"
+        mv "${dest}.tmp" "$dest"
+      else
+        rm -rf "${dest}.tmp"
+        echo ">> Échec du clone de comfyui-profiles (${ref})."
+      fi
+    fi
+  fi
+  if [[ ! -d "${dest}/.git" ]]; then
+    echo ">> comfyui-profiles absent : ComfyUI démarre sans panneau Profils ni synchronisation."
+    return 0
+  fi
+  # Clone superficiel : le tag récupéré par fetch n'est pas toujours une référence locale.
+  echo ">> comfyui-profiles ${ref:-(copie existante)} : $(git -C "$dest" log -1 --format='%h %s' 2>/dev/null)"
+  # Un vrai dossier à cet endroit (image d'avant ce mécanisme) : ln y créerait le lien dedans.
+  local link="${COMFY_HOME}/custom_nodes/comfyui-profiles"
+  [[ -d "$link" && ! -L "$link" ]] && rm -rf "$link"
+  ln -sfn "$dest" "$link"
+  mkdir -p /opt/scripts
+  for script in comfy_profiles.py profile_sizes.py; do
+    ln -sfn "${dest}/${script}" "/opt/scripts/${script}"
+  done
 }
 
 # --- JupyterLab (arrière-plan, lancé avant le exec final vers ComfyUI) ---
@@ -149,7 +207,7 @@ setup_jupyter() {
 persist_env() {
   for var in HF_TOKEN CIVITAI_TOKEN JUPYTER_TOKEN GDRIVE_ZIP_PASSWORD COMFY_HOME MODELS_VOLUME_DIR \
              COMFY_PROFILES COMFY_PROFILES_CONFIG COMFY_PROFILES_SEED COMFY_PROFILES_URL \
-             COMFY_PROFILES_NODES_STORE; do
+             COMFY_PROFILES_NODES_STORE COMFYUI_PROFILES_REF; do
     if [[ -n "${!var:-}" ]]; then
       sed -i "/^${var}=/d" /etc/environment
       echo "${var}=${!var}" >> /etc/environment
@@ -174,6 +232,7 @@ setup_ssh
 persist_path
 # Avant persist_env et JupyterLab : définit COMFY_PROFILES_NODES_STORE quand un volume est monté.
 link_volume_dirs
+install_profiles_plugin
 fetch_profiles_seed
 persist_env
 setup_jupyter
@@ -181,7 +240,9 @@ setup_jupyter
 # Installe ce qui manque pour les profils demandés (après link_volume_dirs : modèles et workflows
 # sont ainsi écrits directement sur le volume), avant de lancer ComfyUI (qui doit voir les
 # nouveaux custom nodes). Long au premier démarrage sur un volume vide.
-if [[ -n "${COMFY_PROFILES:-}" ]]; then
+if [[ -n "${COMFY_PROFILES:-}" && ! -e /opt/scripts/comfy_profiles.py ]]; then
+  echo ">> Profils ${COMFY_PROFILES} non synchronisés : comfyui-profiles absent."
+elif [[ -n "${COMFY_PROFILES:-}" ]]; then
   echo ">> Synchronisation des profils : ${COMFY_PROFILES}"
   /opt/scripts/comfy_profiles.py sync \
     || echo ">> Synchronisation incomplète (voir ci-dessus), on démarre quand même."
