@@ -51,15 +51,19 @@ def main():
 
     pod_name = lib.require_env("POD_NAME")
     gpu_id = lib.require_env("GPU_ID")
+    # Les wheels PyTorch cu132 exigent un driver de la branche CUDA 13 (R580+) : sans ce
+    # filtre, RunPod peut choisir un hôte encore en 12.8/12.9 où torch ne voit pas le GPU.
+    min_cuda = lib.get_env("MIN_CUDA_VERSION", "13.0")
     env_payload = build_env_payload()
 
-    print(f">> Création du pod '{pod_name}' ({gpu_id})")
+    print(f">> Création du pod '{pod_name}' ({gpu_id}, CUDA hôte >= {min_cuda})")
     out = lib.runpodctl_json(
         "pod", "create",
         "--name", pod_name,
         "--image", lib.require_env("IMAGE"),
         "--gpu-id", gpu_id,
         "--gpu-count", "1",
+        "--min-cuda-version", min_cuda,
         "--container-disk-in-gb", lib.require_env("CONTAINER_DISK_GB"),
         "--network-volume-id", volume_id,
         "--volume-mount-path", lib.require_env("VOLUME_MOUNT_PATH"),
