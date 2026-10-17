@@ -5,11 +5,11 @@ les arguments reçus ici. Le pod synchronise déjà COMFY_PROFILES à chaque dé
 sert à ajouter un profil sans redémarrer, ou à explorer les profils disponibles.
 
 Usage:
-  ./07-sync-profiles.py                            # sync des profils COMFY_PROFILES de .env
-  ./07-sync-profiles.py sync krea2,flux2-klein-9b  # sync de profils précis
-  ./07-sync-profiles.py sync krea2 --dry-run       # ce qui serait installé, sans rien faire
-  ./07-sync-profiles.py list                       # profils disponibles
-  ./07-sync-profiles.py show minimax-h3-all-pruned_int8  # contenu d'un profil et ce qui est déjà là
+  ./07-sync-profiles.py                          # sync des profils COMFY_PROFILES de .env
+  ./07-sync-profiles.py sync PROFIL1,PROFIL2     # sync de profils précis
+  ./07-sync-profiles.py sync PROFIL --dry-run    # ce qui serait installé, sans rien faire
+  ./07-sync-profiles.py list                     # profils disponibles
+  ./07-sync-profiles.py show PROFIL              # contenu d'un profil et ce qui est déjà là
 """
 import shlex
 import subprocess
@@ -26,7 +26,7 @@ def main():
     if not args:
         profiles = lib.require_env(
             "COMFY_PROFILES",
-            "COMFY_PROFILES vide dans .env : indique les profils, ex. ./07-sync-profiles.py sync minimax-h3-all-pruned_int8",
+            "COMFY_PROFILES vide dans .env : indique les profils, ex. ./07-sync-profiles.py sync PROFIL",
         )
         args = ["sync", profiles]
 

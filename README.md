@@ -85,12 +85,12 @@ Spécificités du pod :
 `/opt/scripts/comfy_profiles.py` sur le pod, piloté à distance par `deploy/07-sync-profiles.py` :
 
 ```bash
-./07-sync-profiles.py list                     # profils disponibles
-./07-sync-profiles.py show minimax-h3-all-pruned_int8  # contenu d'un profil, et ce qui est déjà là
-./07-sync-profiles.py sync krea2 --dry-run     # ce qui serait installé, sans rien faire
-./07-sync-profiles.py sync krea2,flux2-klein-9b # installe sans redémarrer le pod
-./07-sync-profiles.py uninstall krea2 --dry-run # ce qui serait supprimé (le partagé est gardé)
-./07-sync-profiles.py                          # sync des profils COMFY_PROFILES de .env
+./07-sync-profiles.py list                         # profils disponibles
+./07-sync-profiles.py show PROFIL                  # contenu d'un profil, et ce qui est déjà là
+./07-sync-profiles.py sync PROFIL --dry-run        # ce qui serait installé, sans rien faire
+./07-sync-profiles.py sync PROFIL1,PROFIL2         # installe sans redémarrer le pod
+./07-sync-profiles.py uninstall PROFIL --dry-run   # ce qui serait supprimé (le partagé est gardé)
+./07-sync-profiles.py                              # sync des profils COMFY_PROFILES de .env
 ```
 
 Après une synchronisation à chaud, les nouveaux modèles apparaissent dans ComfyUI dès qu'on
@@ -123,10 +123,10 @@ Volume (voir *Fichier de profils*).
 La désinstallation (`comfy_profiles.py uninstall PROFIL[,...] [--with-extends] [--dry-run]`)
 supprime les modèles, workflows et custom nodes propres aux profils, **sauf** ce qui sert
 encore à un profil gardé : un profil de `COMFY_PROFILES`, ou un autre profil complètement
-installé, y compris ceux dont ils héritent. Exemple : désinstaller `krea2` garde le text
-encoder et le VAE de `krea2-common`. `--with-extends` (case « Inclure les profils hérités »
-du panneau) désinstalle aussi les profils hérités, par exemple pour `minimax-h3-all-*`, qui ne
-fait que regrouper d'autres profils. Seul ce que le gestionnaire a installé lui-même est supprimé (manifeste
+installé, y compris ceux dont ils héritent. Exemple : désinstaller un profil qui hérite d'un
+profil commun garde les modèles de ce profil commun. `--with-extends` (case « Inclure les
+profils hérités » du panneau) désinstalle aussi les profils hérités, par exemple pour un profil
+qui ne fait que regrouper d'autres profils. Seul ce que le gestionnaire a installé lui-même est supprimé (manifeste
 `user/__comfy_profiles/installed.json`, repris du contenu du volume au premier démarrage avec
 comfyui-profiles v0.3.0) : les custom nodes de l'image, les fichiers copiés à la main et les
 paquets pip restent. Un profil de `COMFY_PROFILES` désinstallé revient au prochain démarrage
@@ -266,7 +266,7 @@ avant le premier lancement (le nom peut varier légèrement selon les régions/o
 ## Notes Blackwell
 
 - `SageAttention` (image de base) accélère l'attention (~2x). Dans ComfyUI, patcher le
-  modèle avec le node **Patch Sage Attention KJ** (fourni par KJNodes, installé par le profil
-  `comfyui-common`, dont héritent les profils minimax, krea2 et flux2).
+  modèle avec le node **Patch Sage Attention KJ** (fourni par KJNodes, à déclarer dans les
+  profils qui en ont besoin, en général un profil commun dont les autres héritent).
 - Les poids `int8_convrot` et `nvfp4_awq` tirent parti des tensor cores FP4/INT8 natifs de
   Blackwell — c'est pourquoi ils sont préférés à `bf16`/`fp8_scaled` par défaut ici.
