@@ -170,9 +170,7 @@ install_profiles_plugin() {
   [[ -d "$link" && ! -L "$link" ]] && rm -rf "$link"
   ln -sfn "$dest" "$link"
   mkdir -p /opt/scripts
-  for script in comfy_profiles.py profile_sizes.py; do
-    ln -sfn "${dest}/${script}" "/opt/scripts/${script}"
-  done
+  ln -sfn "${dest}/comfy_profiles.py" /opt/scripts/comfy_profiles.py
 }
 
 # --- JupyterLab (arrière-plan, lancé avant le exec final vers ComfyUI) ---

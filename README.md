@@ -39,7 +39,7 @@ Les profils disponibles sont définis dans un `profiles.json` hébergé sur GitH
 `./07-sync-profiles.py list` les affiche avec leur description.
 
 La taille de chaque profil (`extends` compris, custom nodes non comptés) est indiquée dans
-`profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec `profile_sizes.py`
+`profiles.json`. Après avoir modifié ou ajouté un profil, recalcule-la avec `comfy_profiles.py sizes`
 du dépôt [comfyui-profiles](https://github.com/jdelahayes/comfyui-profiles) (il interroge
 Hugging Face / CivitAI sans rien télécharger), ou sur le pod avec le bouton **Recalculer les
 tailles** du panneau Profils.
